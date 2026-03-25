@@ -1,0 +1,62 @@
+{
+  "default_locale": "en",
+  "fallback_locale": "en",
+  "fallback_policy": "When the user language is unknown, ambiguous, or not in supported_locales, always use the en strings. fallback_locale must stay en (same as default_locale).",
+  "supported_locales": ["en", "zh", "ja", "ko", "de", "es", "ru", "pt", "ar"],
+  "locales": {
+    "en": {
+      "section_heading": "Login",
+      "instruction_paragraph": "Please click or copy the following link and open it in your browser to log in to your Aqara account through the login interface, or scan the QR code with your mobile phone to log in to the Aqara account. After a successful login, enter the access token (aqara_api_key) in the conversation for saving!",
+      "link_label": "Open login page",
+      "token_saved_message": "Access token saved."
+    },
+    "zh": {
+      "section_heading": "登录",
+      "instruction_paragraph": "请点击或复制以下链接，在浏览器中打开并通过登录界面登录 Aqara 账号，或使用手机扫描二维码登录 Aqara 账号。登录成功后，请在对话中粘贴访问令牌（aqara_api_key）以便保存！",
+      "link_label": "点击打开登录页面",
+      "token_saved_message": "访问令牌已保存。"
+    },
+    "ja": {
+      "section_heading": "ログイン",
+      "instruction_paragraph": "次のリンクをクリックするかコピーしてブラウザで開き、ログイン画面から Aqara アカウントにログインするか、携帯電話で QR コードをスキャンしてログインしてください。ログインに成功したら、この会話にアクセストークン（aqara_api_key）を入力して保存してください！",
+      "link_label": "ログインページを開く",
+      "token_saved_message": "アクセストークンを保存しました。"
+    },
+    "ko": {
+      "section_heading": "로그인",
+      "instruction_paragraph": "아래 링크를 클릭하거나 복사하여 브라우저에서 열고 로그인 화면을 통해 Aqara 계정으로 로그인하거나, 휴대전화로 QR 코드를 스캔하여 로그인하세요. 로그인에 성공하면 이 대화에 액세스 토큰(aqara_api_key)을 입력하여 저장하세요!",
+      "link_label": "로그인 페이지 열기",
+      "token_saved_message": "액세스 토큰이 저장되었습니다."
+    },
+    "de": {
+      "section_heading": "Anmeldung",
+      "instruction_paragraph": "Bitte klicken oder kopieren Sie den folgenden Link und öffnen Sie ihn im Browser, um sich über die Anmeldemaske bei Ihrem Aqara-Konto anzumelden, oder scannen Sie den QR-Code mit Ihrem Smartphone. Nach erfolgreicher Anmeldung geben Sie das Zugriffstoken (aqara_api_key) in dieser Unterhaltung ein, damit es gespeichert werden kann!",
+      "link_label": "Anmeldeseite öffnen",
+      "token_saved_message": "Zugriffstoken gespeichert."
+    },
+    "es": {
+      "section_heading": "Iniciar sesión",
+      "instruction_paragraph": "Haga clic o copie el siguiente enlace y ábralo en el navegador para iniciar sesión en su cuenta Aqara mediante la interfaz de inicio de sesión, o escanee el código QR con su teléfono móvil. Después de iniciar sesión correctamente, introduzca el token de acceso (aqara_api_key) en la conversación para guardarlo.",
+      "link_label": "Abrir página de inicio de sesión",
+      "token_saved_message": "Token de acceso guardado."
+    },
+    "ru": {
+      "section_heading": "Вход",
+      "instruction_paragraph": "Нажмите или скопируйте следующую ссылку и откройте её в браузере, чтобы войти в аккаунт Aqara через интерфейс входа, или отсканируйте QR-код камерой телефона. После успешного входа введите токен доступа (aqara_api_key) в этом чате для сохранения!",
+      "link_label": "Открыть страницу входа",
+      "token_saved_message": "Токен доступа сохранён."
+    },
+    "pt": {
+      "section_heading": "Iniciar sessão",
+      "instruction_paragraph": "Clique ou copie a ligação abaixo e abra-a no navegador para iniciar sessão na sua conta Aqara através da página de início de sessão, ou leia o código QR com o telemóvel. Depois de iniciar sessão com sucesso, introduza o token de acesso (aqara_api_key) nesta conversa para o guardar!",
+      "link_label": "Abrir página de início de sessão",
+      "token_saved_message": "Token de acesso guardado."
+    },
+    "ar": {
+      "section_heading": "تسجيل الدخول",
+      "instruction_paragraph": "يُرجى النقر على الرابط التالي أو نسخه وفتحه في المتصفح لتسجيل الدخول إلى حساب Aqara عبر واجهة تسجيل الدخول، أو مسح رمز الاستجابة السريعة بهاتفك المحمول. بعد نجاح تسجيل الدخول، أدخل رمز الوصول (aqara_api_key) في المحادثة ليُحفظ!",
+      "link_label": "فتح صفحة تسجيل الدخول",
+      "token_saved_message": "تم حفظ رمز الوصول."
+    }
+  }
+}
