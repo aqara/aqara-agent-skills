@@ -1,12 +1,6 @@
 ---
 name: aqara-agent
-description: 
-  aqara-agent is an official AI Agent skill built on Aqara Home. It supports natural-language
-  login/session setup, home-space management, device inquiry, device control, and scene
-  management (list and execute scenes). Examples: “How many lights are at home?”, “Turn off the
-  living room AC”, “What’s the temperature and humidity in the bedroom?”, “Run Movie scene”.
-  Never invent homes, rooms, devices, scenes, or states: only report data from executed
-  scripts/API responses.
+description: "aqara-agent is an official AI Agent skill built on Aqara Home. It supports natural-language login/session setup, home-space management, device inquiry, device control, and scene management (list and execute scenes). Examples: \"How many lights are at home?\", \"Turn off the living room AC\", \"What's the temperature and humidity in the bedroom?\", \"Run Movie scene\"."
 ---
 
 # Aqara Smart Home AI Agent Skill
@@ -127,6 +121,7 @@ pip install -r scripts/requirements.txt
 10. In user-visible replies, **do not** print shell commands, script paths, raw stdout (incl. debug JSON), or `references/` filenames; the agent runs scripts; summarize in plain language.
 11. When control APIs return success, keep the closing brief (result + essentials only); **do not** add hedging like “if some lights didn’t turn on, tell me”—troubleshoot only when the user reports an issue.
 12. **Anti-hallucination**: Treat **Ground truth: no fabricated smart-home data** as binding for every turn; any user-visible home/room/device/state detail must trace to a real run of this skill’s tooling, not to model imagination or general knowledge of “typical” smart homes.
+13. Never invent homes, rooms, devices, scenes, or states: only report data from executed scripts/API responses."
 
 ## Out of scope
 
