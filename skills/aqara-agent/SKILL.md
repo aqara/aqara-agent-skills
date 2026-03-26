@@ -1,20 +1,21 @@
 ---
-name: aqara-home-skills
+name: aqara-agent
 description: 
-  aqara-home-skills is an official AI Agent skill built on Aqara Home. It supports natural-language
-  queries and control of smart-home devices—rooms, device info, device state, device logs, and
-  hardware control. Examples: “How many lights are at home?”, “Turn off the living room AC”,
-  “What’s the temperature and humidity in the bedroom?” Never invent homes, rooms, devices, or
-  states: only report data from executed scripts/API responses.
+  aqara-agent is an official AI Agent skill built on Aqara Home. It supports natural-language
+  login/session setup, home-space management, device inquiry, device control, and scene
+  management (list and execute scenes). Examples: “How many lights are at home?”, “Turn off the
+  living room AC”, “What’s the temperature and humidity in the bedroom?”, “Run Movie scene”.
+  Never invent homes, rooms, devices, scenes, or states: only report data from executed
+  scripts/API responses.
 ---
 
 # Aqara Smart Home AI Agent Skill
 
 ## Basics
-
-- **Website**: https://www.aqara.com/cn/
-- **Skill root**: `skills/aqara-home-skills/` (in-repo skill)
+- **Aqara Open Host (default)**: `agent.aqara.com` (override via `AQARA_OPEN_HOST`)
+- **Skill root**: `skills/aqara-agent/` (in-repo skill)
 - **Python wrapper** for the Aqara Open API: `scripts/aqara_open_api.py` — calls the API surface directly.
+
 
 ## Core workflow
 
@@ -32,16 +33,20 @@ Align with **usage** and **core workflow** above; implement in order:
 
 1. **Environment**
 
+- Set environment host first (single-switch for test/prod):
+
+```bash
+export AQARA_OPEN_HOST=agent.aqara.com
+```
+
 - Install dependencies before use:
 
 ```bash
-cd skills/aqara-home-skills
+cd skills/aqara-agent
 pip install -r scripts/requirements.txt
 ```
 
-2. **Auth** — Before any feature, verify Aqara account auth and ensure **`user_account.json` is readable/writable**.
-- Follow `references/aqara-account-manage.md`.
-- Login UI strings (heading, instruction paragraph, link label, token-saved line) live in **`assets/login_prompt_i18n.json`**; pick the locale to match the user’s language as described there—do not hardcode one language in replies. **Fallback**: use **English (`en`)** when language is unknown or unsupported (`fallback_locale` / `default_locale` in that file).
+2. **Auth** — Before any feature, verify Aqara account auth and ensure **`user_account.json` is readable/writable** (project rules may require reading it first). Follow **`references/aqara-account-manage.md`** for switch-home vs re-login, token save, and **§1** login layout. Locale strings and **`default_login_url`** live in **`assets/login_reply_prompt.json`**—match the user’s language; **fallback** to **`en`** when unknown (`fallback_locale` / `default_locale` in that file). Login URL / QR / “stop after `qr_fallback_line`” rules: see **Canonical login** above.
 
 `user_account.json` shape:
 
@@ -52,7 +57,7 @@ pip install -r scripts/requirements.txt
   "home_id": "",
   "home_name": ""
 }
-```
+```S
 
 3. **Home management**
 - After `aqara_api_key` is saved, **automatically** follow `references/home-space-manage.md` to fetch the home list and finalize selection: run that doc’s **step 0** **immediately**; if there is a single home, write it; if multiple, ask the user to pick by index/name. **Do not** end with only “please reply with a home name” without running the fetch.
@@ -67,6 +72,7 @@ pip install -r scripts/requirements.txt
 | Space | List all homes; list rooms in a home | `references/home-space-manage.md` |
 | Device query | Filter by home/room; device details (incl. current attributes) | `references/devices-inquiry.md` |
 | Device control | Control hardware in the home | `references/devices-control.md` |
+| Scene | List and execute scenes | `references/scene-manage.md` |
 
 5. **Route** to the matching `references/` doc, execute, and summarize.
 - Summarize from real outcomes only; **never fabricate success** or any **homes, rooms, devices, attributes, counts, or states** that are not grounded in **actual** script/API output (see **Ground truth: no fabricated smart-home data** above).
@@ -122,12 +128,11 @@ pip install -r scripts/requirements.txt
 11. When control APIs return success, keep the closing brief (result + essentials only); **do not** add hedging like “if some lights didn’t turn on, tell me”—troubleshoot only when the user reports an issue.
 12. **Anti-hallucination**: Treat **Ground truth: no fabricated smart-home data** as binding for every turn; any user-visible home/room/device/state detail must trace to a real run of this skill’s tooling, not to model imagination or general knowledge of “typical” smart homes.
 
-### Out of scope
+## Out of scope
 
 The skill **does not** support:
 - **Video / cameras** — live view, playback
 - **Door locks** — unlock, lock/unlock smart locks (security-sensitive)
-- **Scenes** — run or list scenes
 - **Automations** — list or create automations
 - **Energy** — power usage / billing
 - **Weather** — forecasts

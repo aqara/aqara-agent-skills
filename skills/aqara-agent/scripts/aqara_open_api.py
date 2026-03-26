@@ -4,14 +4,17 @@ Aqara Smart Home Open Platform API wrapper.
 """
 
 import json
+import os
 import sys
 from typing import Optional
 
 import requests
-from runtime_utils import load_api_key, load_config
+from runtime_utils import load_api_key
 
-# Used when api_path_config.json is missing or api_base_url is unset.
-DEFAULT_API_BASE_URL = "https://agent.aqara.com/open/api"
+
+DEFAULT_AQARA_HOST = (os.environ.get("AQARA_OPEN_HOST") or "agent.aqara.com").strip()
+DEFAULT_API_BASE_URL = f"https://{DEFAULT_AQARA_HOST}/open/api"
+
 
 
 def _resolve_open_api_base_url(explicit: Optional[str]) -> str:
@@ -19,9 +22,6 @@ def _resolve_open_api_base_url(explicit: Optional[str]) -> str:
         u = str(explicit).strip()
         if u:
             return u.rstrip("/")
-    cfg_url = (load_config().get("api_base_url") or "").strip()
-    if cfg_url:
-        return cfg_url.rstrip("/")
     return DEFAULT_API_BASE_URL
 
 
@@ -75,7 +75,7 @@ class AqaraOpenAPI:
         """List device details for the current home."""
         if not self.session.headers.get("position_id"):
             raise ValueError("Missing home_id. Set position_id in headers or load from API key.")
-        return self._post("device/detail/query",data={})
+        return self._get("home/devices/query")
 
 
 
@@ -98,8 +98,20 @@ class AqaraOpenAPI:
             raise ValueError("Missing home_id. Set position_id in headers or load from API key.")
         return self._post("device/control",data=data)
 
- 
+    # ─── Scene management ───
+    def get_home_scenes(self):
+        """List scene details for the current home."""
+        if not self.session.headers.get("position_id"):
+            raise ValueError("Missing home_id. Set position_id in headers or load from API key.")
+        return self._get("scene/query")
 
+    def execute_scenes(self, data={}):
+        """Execute scene(s) in the current home."""
+        if not self.session.headers.get("position_id"):
+            raise ValueError("Missing home_id. Set position_id in headers or load from API key.")
+        return self._post("scene/run", data=data)
+
+    
 def _print_json(data):
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
@@ -112,10 +124,10 @@ def main():
         "homes": lambda: api.get_homes(),
         "rooms": lambda: api.get_rooms(),
         "home_devices": lambda: api.get_home_devices(),
-        "device_status": lambda: api.get_devices_status(
-            json.loads(args[0]) if args else {}
-        ),
+        "home_scenes": lambda: api.get_home_scenes(),
+        "device_status": lambda: api.get_devices_status(json.loads(args[0]) if args else {}),
         "device_control": lambda: api.devices_control(json.loads(args[0])),
+        "execute_scenes": lambda: api.execute_scenes(json.loads(args[0]) if args else {}),
     }
 
     if tool_name not in tools:

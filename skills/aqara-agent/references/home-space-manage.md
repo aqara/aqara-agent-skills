@@ -8,7 +8,7 @@
 **0. Fetch homes / positions**
 
 - Infer `lang` from user input when relevant, e.g. `zh`, `en`.
-- **Recommended**: from **`skills/aqara-home-skills`**, run:
+- **Recommended**: from **`skills/aqara-agent`**, run:
 
 ```bash
 python3 scripts/aqara_open_api.py homes
@@ -37,3 +37,11 @@ python3 scripts/save_user_account.py home  '<home_id>'  '<home_name>'
 ```bash
 python3 scripts/aqara_open_api.py rooms
 ```
+
+##注意
+
+**切换家庭**（与重新登录不同）：
+
+- 若用户说「切换家庭」「换一个家庭」「用另一个家」等：**不要**默认走重新登录。在已有有效 `aqara_api_key` 时，直接进入 `references/home-space-manage.md` **步骤 0**（拉取家庭）→ 若多个家庭，**步骤 1**（用户按序号/名称选择；写入 `home_id` / `home_name`）；若仅一个家庭，**步骤 2**（自动写入）。
+- **仅当**用户**明确**要求重新登录/轮换令牌，或接口明确返回 **令牌无效 / 未授权 / 鉴权失败** 时，才执行下文「登录并保存 `aqara_api_key`」流程。
+- **明确信号**：任意响应中出现 **`unauthorized or insufficient permissions`**（或同义的未授权/权限不足表述），即视为鉴权/权限失败——**必须**执行本节「登录并保存 `aqara_api_key`」流程；再按 `references/home-space-manage.md` 刷新家庭并在需要时重选 `home_id`，然后继续原先查询/控制意图。

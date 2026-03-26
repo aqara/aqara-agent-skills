@@ -1,26 +1,5 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""
-Merge-write into skills/aqara-home-skills/assets/user_account.json (merge only; do not wipe unrelated fields).
-
-Subcommands:
-  api-key / aqara_api_key  — write aqara_api_key and updated_at (see runtime_utils.set_aqara_api_key)
-  home                     — write home_id, home_name, updated_at (see runtime_utils.merge_user_context_home_info)
-
-Usage (from skill root):
-  python3 scripts/save_user_account.py api-key '<aqara_api_key>'
-  python3 scripts/save_user_account.py aqara_api_key '<aqara_api_key>'
-  python3 scripts/save_user_account.py home '<home_id>' '<home_name>'
-  python3 scripts/save_user_account.py home '5555' 'My Home'
-
-Omit the second argument to update only home_id and keep the existing home_name:
-  python3 scripts/save_user_account.py home '<home_id>'
-
-If the subcommand is omitted and the first token is not home, treat as api-key (legacy one-arg key pass-through):
-  python3 scripts/save_user_account.py '<aqara_api_key>'
-
-api-key also supports stdin pipes and --file; avoid putting secrets in shell history when possible.
-"""
 
 from __future__ import annotations
 

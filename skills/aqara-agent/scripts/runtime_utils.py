@@ -17,7 +17,6 @@ SKILL_ROOT = SCRIPT_DIR.parent
 ASSETS_DIR = SKILL_ROOT / "assets"
 USER_ACCOUNT_PATH = ASSETS_DIR / "user_account.json"
 _LEGACY_USER_CONTEXT_PATH = ASSETS_DIR / "user_context.json"
-CONFIG_PATH = ASSETS_DIR / "api_path_config.json"
 
 
 def _migrate_legacy_user_context_file() -> None:
@@ -30,66 +29,6 @@ def _migrate_legacy_user_context_file() -> None:
         _LEGACY_USER_CONTEXT_PATH.rename(USER_ACCOUNT_PATH)
     except OSError:
         pass
-
-_DEFAULT_LOGIN_PATH = "/login"
-_DEFAULT_API_PATH = "/open/api"
-_DEFAULT_MCP_PATH = "/open/mcp"
-
-
-def load_config() -> Dict[str, str]:
-    """Load settings from assets/api_path_config.json; derive login_url, api_base_url, mcp_url from aqara_base_url + *_path."""
-    out: Dict[str, str] = {
-        "aqara_base_url": "",
-        "login_path": "",
-        "api_path": "",
-        "mcp_path": "",
-        "homes_query_path": "",
-        "homes_query_url": "",
-        "login_url": "",
-        "api_base_url": "",
-        "mcp_url": "",
-    }
-    if not CONFIG_PATH.exists():
-        return out
-    try:
-        with open(CONFIG_PATH, "r", encoding="utf-8") as f:
-            data = json.load(f)
-        if not isinstance(data, dict):
-            return out
-        base = (data.get("aqara_base_url") or "").strip().rstrip("/")
-        login_p = (data.get("login_path") or "").strip() or _DEFAULT_LOGIN_PATH
-        api_p = (data.get("api_path") or "").strip() or _DEFAULT_API_PATH
-        mcp_p = (data.get("mcp_path") or "").strip() or _DEFAULT_MCP_PATH
-        if not login_p.startswith("/"):
-            login_p = "/" + login_p
-        if not api_p.startswith("/"):
-            api_p = "/" + api_p
-        if not mcp_p.startswith("/"):
-            mcp_p = "/" + mcp_p
-        if base:
-            if not base.startswith("http"):
-                base = "https://" + base
-            out["aqara_base_url"] = base
-            out["login_path"] = login_p
-            out["api_path"] = api_p
-            out["mcp_path"] = mcp_p
-            out["login_url"] = out["login_url"] or (base.rstrip("/") + login_p)
-            out["api_base_url"] = out["api_base_url"] or (base.rstrip("/") + api_p)
-            out["mcp_url"] = out["mcp_url"] or (base.rstrip("/") + mcp_p)
-        hq = (data.get("homes_query_path") or "").strip().lstrip("/")
-        if hq:
-            out["homes_query_path"] = hq
-        hqu = data.get("homes_query_url")
-        if isinstance(hqu, str) and hqu.strip():
-            out["homes_query_url"] = hqu.strip()
-        for k in ("login_url", "api_base_url", "mcp_url"):
-            v = data.get(k)
-            if isinstance(v, str) and v.strip():
-                out[k] = v.strip()
-    except (json.JSONDecodeError, OSError):
-        pass
-    return out
-
 
 def build_open_api_headers(
     access_token: str,
