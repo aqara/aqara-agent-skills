@@ -85,10 +85,15 @@ def _cmd_home(args: argparse.Namespace) -> int:
         )
         return 0
 
-    merge_user_context_home_info(
-        home_id=home_id,
-        home_name=home_name,
-    )
+    try:
+        merge_user_context_home_info(
+            home_id=home_id,
+            home_name=home_name,
+        )
+    except ValueError as e:
+        print_json({"ok": False, "message": str(e)})
+        return 2
+
     print_json(
         {
             "ok": True,

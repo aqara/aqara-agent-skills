@@ -8,58 +8,58 @@
   "supported_locales": ["en", "zh", "ja", "ko", "de", "es", "ru", "pt", "ar"],
   "locales": {
     "en": {
-      "instruction_paragraph": "Click or copy the link below to open it in your browser, or scan the QR code to open the Aqara sign-in page. After you sign in successfully, you will receive an Aqara API access credential (aqara_api_key). Paste the aqara_api_key value into this chat and I will save it for you automatically.",
+      "instruction_paragraph": "Click or copy the link below to open the Aqara sign-in page in your browser—that is all you need. If a QR code is shown in this chat, you may scan it as a shortcut. After you sign in successfully, you will receive an Aqara API access credential (aqara_api_key). Paste the aqara_api_key value into this chat and I will save it for you automatically.",
       "api_key_saved_message": "aqara_api_key saved successfully.",
       "qr_image_alt": "QR code — open Aqara login",
-      "qr_fallback_line": "If the QR code does not appear or looks cut off, use the link or copy the URL above — you can sign in without scanning."
+      "qr_fallback_line": "The link above is enough to sign in; a QR code is optional when shown."
     },
     "zh": {
-      "instruction_paragraph": "请点击或复制以下链接在浏览器打开或者扫描二维码进入Aqara账号登录界面。登录成功后会生成 aqara 接口访问凭证（aqara_api_key），请您将 aqara_api_key 的内容粘贴到本对话中，我会自动为您保存。",
+      "instruction_paragraph": "请用浏览器打开下方链接（点击或复制）进入 Aqara 登录页，仅此即可登录。若对话中展示了二维码，可任选扫码作为快捷方式。登录成功后会生成 aqara 接口访问凭证（aqara_api_key），请您将 aqara_api_key 的内容粘贴到本对话中，我会自动为您保存。",
       "api_key_saved_message": "aqara_api_key保存成功。",
       "qr_image_alt": "二维码 — 打开 Aqara 登录页",
-      "qr_fallback_line": "若二维码未显示或只有一半，请直接点击上方链接或复制网址登录，不扫码也可以完成登录。"
+      "qr_fallback_line": "使用上方链接即可完成登录；二维码在能展示时为可选项。"
     },
     "ja": {
-      "instruction_paragraph": "以下のリンクをクリックまたはコピーしてブラウザで開くか、QR コードを読み取って Aqara のログイン画面に進んでください。ログインに成功すると、Aqara API のアクセス資格情報（aqara_api_key）が生成されます。この会話に aqara_api_key の内容を貼り付けてください。自動的に保存します。",
+      "instruction_paragraph": "以下のリンクをブラウザで開いて Aqara にサインインしてください（クリックまたはコピー）。これだけで十分です。会話内に QR が表示されている場合は、任意で読み取っても構いません。ログインに成功すると、Aqara API のアクセス資格情報（aqara_api_key）が生成されます。この会話に aqara_api_key の内容を貼り付けてください。自動的に保存します。",
       "api_key_saved_message": "aqara_api_key を保存しました。",
       "qr_image_alt": "QRコード — Aqara ログインを開く",
-      "qr_fallback_line": "QRコードが表示されない、または欠けて見える場合は、上のリンクを開くか URL をコピーしてください。スキャンしなくてもログインできます。"
+      "qr_fallback_line": "上のリンクだけでサインインできます。QR は表示されている場合の省略用です。"
     },
     "ko": {
-      "instruction_paragraph": "아래 링크를 클릭하거나 복사해 브라우저에서 열거나, 휴대전화로 QR 코드를 스캔해 Aqara 로그인 화면으로 들어가세요. 로그인에 성공하면 Aqara API 접근 자격 증명(aqara_api_key)이 생성됩니다. aqara_api_key 내용을 이 대화에 붙여 넣어 주시면 자동으로 저장해 드립니다.",
+      "instruction_paragraph": "아래 링크를 브라우저에서 열어 Aqara에 로그인하세요(클릭 또는 복사). 링크만으로 로그인할 수 있습니다. 대화에 QR 코드가 보이면 선택적으로 스캔할 수 있습니다. 로그인에 성공하면 Aqara API 접근 자격 증명(aqara_api_key)이 생성됩니다. aqara_api_key 내용을 이 대화에 붙여 넣어 주시면 자동으로 저장해 드립니다.",
       "api_key_saved_message": "aqara_api_key 저장에 성공했습니다.",
       "qr_image_alt": "QR 코드 — Aqara 로그인 열기",
-      "qr_fallback_line": "QR 코드가 보이지 않거나 잘린 것처럼 보이면 위 링크를 누르거나 URL을 복사하세요. 스캔 없이도 로그인할 수 있습니다."
+      "qr_fallback_line": "위 링크만으로 로그인할 수 있습니다. QR 코드는 보일 때 선택 사항입니다."
     },
     "de": {
-      "instruction_paragraph": "Klicken oder kopieren Sie den untenstehenden Link, um ihn im Browser zu öffnen, oder scannen Sie den QR-Code für die Aqara-Anmeldung. Nach erfolgreicher Anmeldung erhalten Sie ein Aqara-API-Zugangstoken (aqara_api_key). Fügen Sie den Inhalt von aqara_api_key hier in den Chat ein — ich speichere es automatisch für Sie.",
+      "instruction_paragraph": "Öffnen Sie den untenstehenden Link im Browser (klicken oder kopieren) — das genügt für die Aqara-Anmeldung. Wird in diesem Chat ein QR-Code angezeigt, können Sie ihn optional scannen. Nach erfolgreicher Anmeldung erhalten Sie ein Aqara-API-Zugangstoken (aqara_api_key). Fügen Sie den Inhalt von aqara_api_key hier in den Chat ein — ich speichere es automatisch für Sie.",
       "api_key_saved_message": "aqara_api_key erfolgreich gespeichert.",
       "qr_image_alt": "QR-Code — Aqara-Anmeldung öffnen",
-      "qr_fallback_line": "Wenn der QR-Code fehlt oder abgeschnitten wirkt, nutzen Sie den Link oder kopieren Sie die URL oben — die Anmeldung funktioniert auch ohne Scan."
+      "qr_fallback_line": "Der Link oben reicht zur Anmeldung; der QR-Code ist optional, falls angezeigt."
     },
     "es": {
-      "instruction_paragraph": "Pulse o copie el enlace siguiente para abrirlo en el navegador o escanee el código QR para acceder al inicio de sesión de Aqara. Tras iniciar sesión correctamente, obtendrá la credencial de acceso a la API de Aqara (aqara_api_key). Pegue el valor de aqara_api_key en esta conversación y lo guardaré automáticamente por usted.",
+      "instruction_paragraph": "Abra el siguiente enlace en el navegador (pulse o copie): es suficiente para iniciar sesión en Aqara. Si aparece un código QR en el chat, puede escanearlo de forma opcional. Tras iniciar sesión correctamente, obtendrá la credencial de acceso a la API de Aqara (aqara_api_key). Pegue el valor de aqara_api_key en esta conversación y lo guardaré automáticamente por usted.",
       "api_key_saved_message": "aqara_api_key guardado correctamente.",
       "qr_image_alt": "Código QR — abrir inicio de sesión Aqara",
-      "qr_fallback_line": "Si el código QR no aparece o se ve cortado, use el enlace o copie la URL de arriba; puede iniciar sesión sin escanear."
+      "qr_fallback_line": "El enlace de arriba basta para iniciar sesión; el código QR es opcional si se muestra."
     },
     "ru": {
-      "instruction_paragraph": "Нажмите или скопируйте ссылку ниже, чтобы открыть её в браузере, или отсканируйте QR-код для входа в Aqara. После успешного входа будет сформирован токен доступа к API Aqara (aqara_api_key). Вставьте значение aqara_api_key в этот чат — я сохраню его автоматически.",
+      "instruction_paragraph": "Откройте ссылку ниже в браузере (нажмите или скопируйте) — этого достаточно для входа в Aqara. Если в чате показан QR-код, его можно по желанию отсканировать. После успешного входа будет сформирован токен доступа к API Aqara (aqara_api_key). Вставьте значение aqara_api_key в этот чат — я сохраню его автоматически.",
       "api_key_saved_message": "aqara_api_key успешно сохранён.",
       "qr_image_alt": "QR-код — открыть вход Aqara",
-      "qr_fallback_line": "Если QR-код не отображается или обрезан, откройте ссылку или скопируйте URL выше — вход возможен и без сканирования."
+      "qr_fallback_line": "Одной ссылки выше достаточно для входа; QR-код необязателен, если он показан."
     },
     "pt": {
-      "instruction_paragraph": "Toque ou copie a ligação abaixo para abrir no navegador ou leia o código QR para ir à página de início de sessão da Aqara. Após iniciar sessão com sucesso, será gerada a credencial de acesso à API Aqara (aqara_api_key). Cole o conteúdo de aqara_api_key nesta conversa e guardo-o automaticamente por si.",
+      "instruction_paragraph": "Abra a ligação abaixo no navegador (toque ou copie): isso basta para iniciar sessão na Aqara. Se aparecer um código QR nesta conversa, pode lê-lo opcionalmente. Após iniciar sessão com sucesso, será gerada a credencial de acesso à API Aqara (aqara_api_key). Cole o conteúdo de aqara_api_key nesta conversa e guardo-o automaticamente por si.",
       "api_key_saved_message": "aqara_api_key guardado com sucesso.",
       "qr_image_alt": "Código QR — abrir início de sessão Aqara",
-      "qr_fallback_line": "Se o código QR não aparecer ou parecer cortado, use a ligação ou copie o URL acima — pode iniciar sessão sem ler o código."
+      "qr_fallback_line": "A ligação acima chega para iniciar sessão; o código QR é opcional se for mostrado."
     },
     "ar": {
-      "instruction_paragraph": "انقر أو انسخ الرابط أدناه لفتحه في المتصفح، أو امسح رمز الاستجابة السريعة للدخول إلى صفحة تسجيل الدخول في Aqara. بعد تسجيل الدخول بنجاح، يُنشأ رمز الوصول إلى واجهة Aqara API (aqara_api_key). الصق محتوى aqara_api_key في هذه المحادثة وسأحفظه تلقائيًا لك.",
+      "instruction_paragraph": "افتح الرابط أدناه في المتصفح (انقر أو انسخ) — وهذا كافٍ لتسجيل الدخول إلى Aqara. إذا ظهر رمز QR في المحادثة، يمكنك مسحه اختياريًا. بعد تسجيل الدخول بنجاح، يُنشأ رمز الوصول إلى واجهة Aqara API (aqara_api_key). الصق محتوى aqara_api_key في هذه المحادثة وسأحفظه تلقائيًا لك.",
       "api_key_saved_message": "تم حفظ aqara_api_key بنجاح.",
       "qr_image_alt": "رمز QR — فتح تسجيل الدخول Aqara",
-      "qr_fallback_line": "إذا لم يظهر رمز الاستجابة السريعة أو بدا مقطوعًا، استخدم الرابط أو انسخ العنوان أعلاه — يمكنك تسجيل الدخول دون مسح الرمز."
+      "qr_fallback_line": "الرابط أعلاه كافٍ لتسجيل الدخول؛ رمز QR اختياري عند عرضه."
     }
   }
 }
