@@ -4,6 +4,8 @@ Aqara Smart Home Open Platform REST API wrapper.
 
 Base URL: ``https://<AQARA_OPEN_HOST>/open/api`` by default, or override with
 ``AQARA_OPEN_API_URL`` (full URL, no trailing slash required).
+
+HTTP timeout (seconds): ``AQARA_OPEN_HTTP_TIMEOUT`` (default 60) for ``_get`` / ``_post``.
 """
 
 import json
@@ -20,13 +22,16 @@ from runtime_utils import (
     merge_user_context_home_info,
 )
 
+_DEFAULT_OPEN_TIMEOUT = float(os.environ.get("AQARA_OPEN_HTTP_TIMEOUT") or "60")
+
 
 def _default_open_host() -> str:
+    # return (os.environ.get("AQARA_OPEN_HOST") or "agent.aqara.com").strip()
     return (os.environ.get("AQARA_OPEN_HOST") or "agent.aqara.com").strip()
-
 
 def _default_api_base_url() -> str:
     return f"https://{_default_open_host()}/open/api"
+    # return f"http://127.0.0.1:8001/back"
 
 
 def _resolve_api_base_url(explicit: Optional[str] = None) -> str:
@@ -141,6 +146,9 @@ class AqaraOpenAPI:
         self.api_key = key
         self.base_url = _resolve_api_base_url(api_base_url)
         self.session = requests.Session()
+        # fixme（临时写死自测用）
+        # self.session.headers.update({"user_id": "472690618981508f.685517567833059329"})
+        self.session.headers.update({"application_id": "AqaqaAgentSkills"})
         self.session.headers.update({"Authorization": f"Bearer {key}"})
         if home_id and str(home_id).strip():
             self.session.headers.update({"position_id": str(home_id).strip()})
@@ -157,13 +165,13 @@ class AqaraOpenAPI:
 
     def _get(self, path: str, params: Optional[Dict[str, Any]] = None) -> Any:
         url = f"{self.base_url}/{path.lstrip('/')}"
-        resp = self.session.get(url, params=params)
+        resp = self.session.get(url, params=params, timeout=_DEFAULT_OPEN_TIMEOUT)
         resp.raise_for_status()
         return resp.json()
 
     def _post(self, path: str, data: Optional[Dict[str, Any]] = None) -> Any:
         url = f"{self.base_url}/{path.lstrip('/')}"
-        resp = self.session.post(url, json=data)
+        resp = self.session.post(url, json=data, timeout=_DEFAULT_OPEN_TIMEOUT)
         resp.raise_for_status()
         return resp.json()
 
@@ -184,9 +192,9 @@ class AqaraOpenAPI:
                 self.session.headers["position_id"] = saved_position
 
     def get_rooms(self) -> Any:
-        """List all rooms in the current home."""
+        """GET home/positions/query (rooms / positions in current home)."""
         self._require_position_id()
-        return self._get("position/detail/query")
+        return self._get("home/positions/query")
 
     # ─── Device info ───
     def get_home_devices(self) -> Any:
@@ -194,32 +202,114 @@ class AqaraOpenAPI:
         self._require_position_id()
         return self._get("home/devices/query")
 
+    def post_device_base_info(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST device/base/info (JSON body per Open API)."""
+        self._require_position_id()
+        return self._post("device/base/info", data=data or {})
+
     # ─── Device status ───
-    def get_devices_status(self, data: Optional[Dict[str, Any]] = None) -> Any:
-        """Query device status. `data`: request JSON body (e.g. device_ids)."""
+    def post_device_status(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST device/status/query. `data`: request JSON body (e.g. device_ids)."""
         self._require_position_id()
         return self._post("device/status/query", data=data or {})
 
     # ─── Device control ───
-    def devices_control(self, data: Optional[Dict[str, Any]] = None) -> Any:
-        """Send a control command to device(s) in the current home."""
+    def post_device_control(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST device/control."""
         self._require_position_id()
         return self._post("device/control", data=data or {})
 
+    def post_device_log(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST device/status/log/query."""
+        self._require_position_id()
+        return self._post("device/status/log/query", data=data or {})
+
     # ─── Scene management ───
     def get_home_scenes(self) -> Any:
-        """List scene details for the current home."""
+        """GET home/scenes/query."""
         self._require_position_id()
-        return self._get("scene/query")
+        return self._get("home/scenes/query")
 
-    def execute_scenes(self, data: Optional[Dict[str, Any]] = None) -> Any:
-        """Execute scene(s) in the current home."""
+    def post_execute_scene(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST scene/run."""
         self._require_position_id()
         return self._post("scene/run", data=data or {})
 
+    def post_scene_detail_query(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST scene/detail/query (device_ids in body)."""
+        self._require_position_id()
+        return self._post("scene/detail/query", data=data or {})
 
+    def post_scene_execution_log(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST scene/execution/log/query."""
+        self._require_position_id()
+        return self._post("scene/execution/log/query", data=data or {})
+
+    # ─── Automation management ───
+    def get_home_automations(self) -> Any:
+        """List automations for the current home."""
+        self._require_position_id()
+        return self._get("home/automations/query")
+
+    def post_automation_detail_query(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST automation/detail/query."""
+        self._require_position_id()
+        return self._post("automation/detail/query", data=data or {})
+
+    def post_automation_execution_log(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST automation/execution/log/query."""
+        self._require_position_id()
+        return self._post("automation/execution/log/query", data=data or {})
+
+    def post_automation_switch(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST automation/switch."""
+        self._require_position_id()
+        return self._post("automation/switch", data=data or {})
+
+    # ─── Energy ───
+    def post_energy_consumption_statistic(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """
+        POST device or position energy consumption query.
+
+        Route is chosen only from ``device_ids``:
+
+        - Non-empty ``device_ids`` list → ``device/energy/consumption/query``.
+        - Otherwise (including empty or missing ``device_ids``) → ``position/energy/consumption/query``.
+        """
+        self._require_position_id()
+        body: Dict[str, Any] = data if isinstance(data, dict) else {}
+        dids = body.get("device_ids")
+        if isinstance(dids, list) and len(dids) > 0:
+            path = "device/energy/consumption/query"
+        else:
+            path = "position/energy/consumption/query"
+        return self._post(path, data=body)
+
+
+# CLI: first argv must match a public method name on :class:`AqaraOpenAPI` (see references/*.md).
+# Dispatch: ``get_*`` → ``meth()``; ``post_*`` → ``meth(payload)``.
 def _print_json(data: Any) -> None:
     print(json.dumps(data, ensure_ascii=False, indent=2))
+
+
+def _cli_invoke(api: AqaraOpenAPI, method_name: str, payload: Dict[str, Any]) -> Any:
+    """Call ``api.<method_name>()`` or ``(..., payload)`` based on the ``get_`` / ``post_`` prefix."""
+    if method_name.startswith("_"):
+        print(f"Unknown tool: {method_name}", file=sys.stderr)
+        sys.exit(1)
+    meth = getattr(api, method_name, None)
+    if not callable(meth):
+        print(f"Unknown tool: {method_name}", file=sys.stderr)
+        sys.exit(1)
+    if method_name.startswith("get_"):
+        return meth()
+    if method_name.startswith("post_"):
+        return meth(payload)
+    print(
+        f"Tool name must start with get_ or post_: {method_name}",
+        file=sys.stderr,
+    )
+    sys.exit(1)
 
 
 def main() -> None:
@@ -237,28 +327,28 @@ def main() -> None:
     args = sys.argv[2:]
 
     try:
-        payload: Dict[str, Any] = json.loads(args[0]) if args else {}
+        raw_payload: Any = json.loads(args[0]) if args else {}
     except json.JSONDecodeError as e:
         print(f"Invalid JSON: {e}", file=sys.stderr)
         sys.exit(1)
-
-    tools = {
-        "homes": lambda: api.get_homes(),
-        "rooms": lambda: api.get_rooms(),
-        "home_devices": lambda: api.get_home_devices(),
-        "home_scenes": lambda: api.get_home_scenes(),
-        "device_status": lambda: api.get_devices_status(payload),
-        "device_control": lambda: api.devices_control(payload),
-        "execute_scenes": lambda: api.execute_scenes(payload),
-    }
-
-    runner = tools.get(tool_name)
-    if runner is None:
-        print(f"Unknown tool: {tool_name}", file=sys.stderr)
-        sys.exit(1)
+    payload: Dict[str, Any] = raw_payload if isinstance(raw_payload, dict) else {}
+    if args and not isinstance(raw_payload, dict):
+        print(
+            "Warning: JSON body must be a JSON object; using empty object instead.",
+            file=sys.stderr,
+        )
 
     try:
-        out = runner()
+        out = _cli_invoke(api, tool_name, payload)
+    except json.JSONDecodeError as e:
+        print(f"Response was not valid JSON: {e}", file=sys.stderr)
+        sys.exit(1)
+    except ValueError as e:
+        print(str(e), file=sys.stderr)
+        sys.exit(1)
+    except requests.RequestException as e:
+        print(f"HTTP error: {e}", file=sys.stderr)
+        sys.exit(1)
     except NoHomesAvailableError as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)

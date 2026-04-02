@@ -1,89 +1,88 @@
 # Device Inquiry
 
-## Execution Order (Strict)
+## Step 1: Sub-Intent
 
-### Step 1: Classify the Query Sub-Intent
+- **`devices_detail`:** list/count, which room, device inventory.
+- **`query_state`:** live attributes (online, temp, humidity, switch, …).
+- Unclear → start `devices_detail`, then clarify.
 
-Two buckets:
+## Workflow
 
-- `devices_detail`: room or whole-home device list, which room a device is in, device counts.
-- `query_state`: live state (online/offline, temperature, humidity, switch state, etc.).
-- If unclear, start as `devices_detail`, then clarify.
+**Mixed utterance** (e.g. query + control): **Must** split sub-requests; semantic order; **Must** query before control when both appear in one sub-request.
 
-### Device Query Workflow
+1. **Locate:** `home-space-manage.md` for layout; then:
 
-For mixed utterances like "Turn on the living room light and set AC to 26°C":
+```bash
+python3 scripts/aqara_open_api.py get_home_devices
+```
 
-1. **Split the request**
-   - Multiple devices/actions -> multiple sub-queries.
-   - Each sub-query follows control or query flow as appropriate.
-   - Example: "Bedroom light on, living room AC off" -> bedroom light first, then living room AC.
-   - Mixed intents: split in semantic order; label each sub-query as query or control.
-   - If a sub-query mixes **query + control**, query first, then control.
+   Fuzzy-match room, name, **`device_type`** (table below) on `home_devices`.
 
-2. **Locate devices** from names or locations
-   - Load home/room layout via `references/home-space-manage.md`.
-   - From the user query, extract room name; run the script for base device info (includes device id, device name, position name):
+2. **`query_state` only:** build `device_ids` from `endpoint_id`; then:
 
-   ```bash
-   python3 scripts/aqara_open_api.py home_devices
-   ```
+```bash
+python3 scripts/aqara_open_api.py post_device_status '{"device_ids":["device_id_1", "device_id_2"]}'
+```
 
-   - Fuzzy-match by location, device name, type (e.g. "AC") against the `home_devices` response.
+   Else stop after list/detail for `devices_detail`.
 
-3. **Fetch state** only if the sub-intent is `query_state`; otherwise stop after the prior steps and answer from list/detail:
-   - If multiple devices match, build `device_ids` from `endpoint_id` in the list.
-   - Example status call:
+3. **Reply:** conclusion first; online/offline, room, key values; sort room → name; **Forbidden** raw device/position ids in user text.
 
-   ```bash
-   python3 scripts/aqara_open_api.py device_status '{"device_ids":["device_id_1", "device_id_2"]}'
-   ```
+## Device Type → Category (Substring on `device_type`)
 
-4. **Shape the reply**
-   - Conclusion first, then detail.
-   - Lead with online/offline, room, key state values.
-   - Optional detail: capabilities, how you matched (do **not** expose raw ids in user text).
-   - Sort multi-device answers by room -> device name for stable output.
-   - Do not surface raw ids (device id, position id) to the user.
+**Rule:** category match when `device_type` **contains** substring (API casing, usually PascalCase).
 
-## Disambiguation (Minimal)
+| `device_type` contains | EN examples | `fuzzy_category_name_zh` |
+| --- | --- | --- |
+| `Light` | lights, lamps | 灯 |
+| `AirConditioner` | AC, air conditioner | 空调 |
+| `WindowCovering` | curtains, shades | 窗帘 |
+| `ClotheDryingMachine` | drying rack | 晾衣架 |
+| `SweepingRobot` | robot vacuum | 扫地机器人 |
+| `Speaker` | smart speaker | 音响 |
+| `Camera` | camera (video) | 摄像机, 摄像头 |
+| `VideoDoorbell` | doorbell | 门铃 |
+| `PetFeeder` | pet feeder | 宠物喂食器 |
 
-Ask only when needed, **one** key question:
+Extend when new families appear. **Control** after resolve → `devices-control.md`.
 
-- Ambiguous device name: `I found several "main lights": living room vs master bedroom. Which one?`
-- Room missing but needed: `Which room? Options: living room, bedroom, study.`
+## Optional: `post_device_base_info`, `post_device_log`
 
-When nothing matches:
+Same `home_id` gate. **Must** resolve `device_ids` from `get_home_devices` unless tenant allows otherwise.
 
-- Say there is no exact match
-- Offer 2-5 close candidate names
-- Give an example sentence they can reuse
+```bash
+python3 scripts/aqara_open_api.py post_device_base_info '{"device_ids":["<endpoint_id>"]}'
+```
 
-## Failure & Fallback
+```bash
+python3 scripts/aqara_open_api.py post_device_log '{"device_ids":["<endpoint_id>"]}'
+```
 
-Describe outcomes plainly - no raw error codes:
+Bodies follow live Open API.
 
-- No match: say so + 2-5 candidate names
-- Recent layout changes: list may be stale - suggest re-running device list (`home_devices`) and retry
-- Ambiguous: list conflicting devices; ask for room or full name
-- Live state unavailable: say real-time read failed; fall back to cached info if you have it
-- Query call failed: short reason, no internal leakage
-- **`unauthorized or insufficient permissions`**: token invalid or insufficient permission - **do not** keep retrying business APIs with the old token; guide the user through `references/aqara-account-manage.md` to re-login, save new `aqara_api_key`, then refresh homes and devices.
+## Disambiguation
+
+- **Must** ≤ one key question when needed (name clash, missing room).
+- No match: **Must** say so + 2–5 candidate names + example phrasing.
+
+## Failure
+
+- **Forbidden** raw error codes to user.
+- No match → state + candidates. Stale layout → **Must** re-run `get_home_devices` and retry.
+- Ambiguous → list conflicts; one question (room or full name).
+- Live state failed → say so; cached only if actually held.
+- **`unauthorized or insufficient permissions`:** **Forbidden** retry business APIs with old token; **Must** `aqara-account-manage.md` re-login → refresh homes/devices.
 
 ## Output Templates
 
-### Template A: Lists (`device_detail`)
+- **List:** conclusion (counts/online); detail `name | type | room`.
+- **State:** conclusion (headline metrics); detail `name | metric | value | updated_at`.
+- **Failure:** short reason; **Forbidden** invent data.
 
-- Conclusion: `Living room has 8 devices; 7 online: ...`
-- Detail: lines like `name | type | room`.
+## Opening Ratio (Logs / History)
 
-### Template B: State (`device_status`)
-
-- Conclusion: `Living room AC 24°C; bedroom AC 26°C.` (use units from API when present; keep user-facing wording consistent.)
-- Detail: `name | metric | value | updated_at (if any)`.
-
-### Template C: Failure / Missing Context
-
-- Conclusion: `Query could not be completed.`
-- Reason: `Context incomplete or live state temporarily unavailable.`
-- Suggestion: `Retry after fixing home_id or try again later.`
+| Value | Meaning |
+| --- | --- |
+| 0% or 1% | Closed |
+| 100% | Open |
+| Other | Partial; report number if user wants precision |

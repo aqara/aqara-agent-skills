@@ -1,82 +1,112 @@
 ---
 name: aqara-agent
-description: "aqara-agent is an official AI Agent skill built on Aqara Home. It supports natural-language login/session setup, home-space management, device inquiry, device control, and scene management (list and execute scenes). Examples: \"How many lights are at home?\", \"Turn off the living room AC\", \"What's the temperature and humidity in the bedroom?\", \"Run Movie scene\""
+description: "aqara-agent is an official Aqara Home AI Agent skill. It supports natural-language home and space management, device inquiry, device control, device logs, scene management (query, execute, and logs), automation management (query, detail, toggle, and logs), and energy / electricity-cost statistics (by device, room, or home). Examples: \"How many lights are at home?\", \"Turn off the living room AC.\", \"What are the temperature and humidity in the bedroom?\", \"Run the Movie scene.\", \"What automations do I have?\", \"How much the electricity bill for the past month is at home?\", \"Check automation execution in the bedroom for the last three days.\""
 ---
 
 # Aqara Smart Home AI Agent Skill
 
 ## Basics
 
-- **Aqara Open Host (default)**: `agent.aqara.com` (override via `AQARA_OPEN_HOST`)
-- **Skill root**: `skills/aqara-agent/` (in-repo skill)
-- **Python wrapper** for the Aqara Open API: `scripts/aqara_open_api.py` - calls the API surface directly.
+- **Host (default):** `agent.aqara.com` — override with `AQARA_OPEN_HOST`. **Skill root:** `skills/aqara-agent/`. **Wrapper:** `scripts/aqara_open_api.py` (`AqaraOpenAPI` → Open Platform REST, including energy).
 
-## Core workflow
+### `aqara_open_api.py` CLI
 
-High-level order: **deps -> sign-in -> pick home -> intent -> follow `references/*.md` and summarize**.
+- **Invocation:** `python3 scripts/aqara_open_api.py <method_name> [json_body]`.
+- **Must:** first argument equals the **exact** public method name on `AqaraOpenAPI` (see bash examples in `references/*.md`). **Forbidden:** aliases or shortened names unless a reference documents an equivalent.
+- **Dispatch:** `get_*` → no JSON body; `post_*` → JSON object (optional, default `{}`).
+- **Energy:** `post_energy_consumption_statistic` — route from **`device_ids` only** (non-empty → device API; else position). Fields and NL mapping: `references/energy-statistic.md`.
+- **Optional env:** `AQARA_OPEN_HTTP_TIMEOUT` (default 60), `AQARA_OPEN_API_URL`.
 
-## Ground truth: no fabricated smart-home data
+## Skill Package Layout
 
-Large models may **hallucinate** plausible homes, rooms, devices, states, or counts. For this skill, that is **explicitly forbidden**:
+Relative to `skills/aqara-agent/`. **Normative:** this file + `references/*.md`. `README.md` is a human index only.
 
-- **Sources of truth only**: Homes, rooms, device names/IDs (for internal use), capabilities, live attributes (temperature, brightness, switch state, online/offline, etc.), lists, counts, logs, and control outcomes **must** come **only** from executed skill scripts and real Aqara API responses - or from user-supplied input the skill is designed to accept (e.g. pasted `aqara_api_key`). If the corresponding inquiry or control flow **has not** been run successfully, **do not** present any of that information as factual.
-- **Never invent or "plausible-fill"**: Example or demo-style device/home lists; guessed room layouts; assumed device counts; synthetic attribute values; fabricated success after errors, timeouts, skipped steps, or missing auth; JSON or prose that mimics API output without a real response.
-- **When data is missing**: State clearly that it could not be retrieved (and why, e.g. not signed in, API error), then follow auth/retry/`references/` - **never** substitute imagined content to make the answer feel complete.
+| Path | Purpose |
+|------|---------|
+| `SKILL.md` | This document. |
+| `README.md` | Human index; **Forbidden** treat as overriding `SKILL.md`. |
+| `assets/login_reply_prompt.json` | Locales, `official_open_login_url`, `login_url_policy`. |
+| `assets/user_account.example.json` | Template shape. |
+| `assets/user_account.json` | Live session (sensitive). |
+| `references/*.md` | Per-domain procedures (account, home-space, devices, scenes, automations, energy). |
+| `scripts/aqara_open_api.py` | CLI + HTTP client. |
+| `scripts/save_user_account.py` | Writes `aqara_api_key`. |
+| `scripts/runtime_utils.py` | Shared helpers. |
+| `scripts/requirements.txt` | Dependencies. |
 
-Align with **usage** and **core workflow** above; implement in order:
+## Core Workflow
 
-1. **Environment**
+**deps → sign-in → pick home → intent → `references/*.md` → summarize**
 
-   - Set environment host first (single-switch for test/prod):
+## Ground Truth (Binding)
 
-   ```bash
-   export AQARA_OPEN_HOST=agent.aqara.com
-   ```
+**Forbidden** stating or implying as factual: homes, rooms, devices, capabilities, attributes, counts, logs, or control outcomes, except from **executed** skill scripts + real API responses or skill-accepted user input (e.g. pasted `aqara_api_key`). If that flow **has not** succeeded, **Forbidden** any factual claim about those entities.
 
-   - Install dependencies before use:
+**Forbidden** demo-style lists, guessed layouts, synthetic values, fake success after errors/timeouts/missing auth, or prose/JSON mimicking API output without a real response.
 
-   ```bash
-   cd skills/aqara-agent
-   pip install -r scripts/requirements.txt
-   ```
+**Must** state missing data and cause (e.g. not signed in, API error), then auth/retry/`references/`. **Forbidden** imagined padding.
 
-2. **Auth** - Before any feature, verify Aqara account auth and ensure **`user_account.json` is readable/writable** (project rules may require reading it first). Follow **`references/aqara-account-manage.md`** for switch-home vs re-login, token save, and **Step 1: Login Guidance**. Locale strings and **`default_login_url`** live in **`assets/login_reply_prompt.json`** - match the user's language; **fallback** to **`en`** when unknown (`fallback_locale` / `default_locale` in that file). **Login is satisfied by the single-line URL**; showing **`assets/login_qr.png`** is optional when the file exists and the client can render images. `qr_fallback_line` and the full order are in that reference.
+---
 
-   `user_account.json` shape:
+Execute in order:
 
-   ```json
-   {
-     "aqara_api_key": "",
-     "updated_at": "",
-     "home_id": "",
-     "home_name": ""
-   }
-   ```
+### 1. Environment
 
-3. **Home management**
+```bash
+export AQARA_OPEN_HOST=agent.aqara.com   # test; omit or set prod host as required
+```
 
-   - After `aqara_api_key` is saved, **automatically** follow `references/home-space-manage.md` to fetch the home list and finalize selection: run that doc's **step 0** **immediately**; if there is a single home, write it; if multiple, ask the user to pick by index/name. **Do not** end with only "please reply with a home name" without running the fetch.
-   - When the agent/terminal runs scripts: `save_user_account.py` (write token) and `aqara_open_api.py homes` (fetch homes) **must be two separate runs** - **do not** chain with `&&` in one shell line; see `references/aqara-account-manage.md` step **2** and `references/home-space-manage.md` step **0**.
-   - **Switching homes**: by default **only** re-fetch the home list and let the user choose (see `references/home-space-manage.md`); **do not** default to re-login. **Only** if the user clearly asks to re-login/rotate the token, or the API indicates an expired/unauthorized token, follow `references/aqara-account-manage.md` for login.
+```bash
+cd skills/aqara-agent
+pip install -r scripts/requirements.txt
+```
 
-4. **Intent**
+### 2. Auth
 
-   - Space / device query / device control / scene. For multiple intents **query first, then control**, following clause order in the utterance.
+- **Must** confirm `user_account.json` readable/writable before features; host/project rules may require reading it first.
+- **Must** follow `references/aqara-account-manage.md` (switch-home vs re-login, token save, Step 1 login copy).
+- **Must** read `assets/login_reply_prompt.json` on every login guidance turn. **Must** set the user-facing login link to the **exact** `official_open_login_url` string (`login_url_policy`). **Forbidden** invent Open Platform / `sns-auth` / `client_id` / `redirect_uri` URLs from memory.
+- Locale from JSON for the user’s language; unknown → `en` (`fallback_locale` / `default_locale`). **Must** deliver the **single-line** login URL per `references/aqara-account-manage.md`.
 
-   | Intent | Capability | Reference |
-   |--------|------------|-----------|
-   | Space | List all homes; list rooms in a home | `references/home-space-manage.md` |
-   | Device query | Filter by home/room; device details (incl. current attributes) | `references/devices-inquiry.md` |
-   | Device control | Control hardware in the home | `references/devices-control.md` |
-   | Scene | List and execute scenes | `references/scene-manage.md` |
+`user_account.json`:
 
-5. **Route** to the matching `references/` doc, execute, and summarize.
+```json
+{
+  "aqara_api_key": "",
+  "updated_at": "",
+  "home_id": "",
+  "home_name": ""
+}
+```
 
-   - Summarize from real outcomes only; **never fabricate success** or any **homes, rooms, devices, attributes, counts, or states** that are not grounded in **actual** script/API output (see **Ground truth: no fabricated smart-home data** above).
+### 3. Home Management
 
-### Illustrative CLI JSON (for agents only; do not paste raw blocks to users)
+- **Must** after saving `aqara_api_key` run `references/home-space-manage.md` step **0** immediately (fetch homes; one home → write; many → user picks). **Forbidden** reply only “send home name” without running fetch.
+- **Must** run `save_user_account.py` and `aqara_open_api.py get_homes` as **two separate** invocations. **Forbidden** `&&` on one shell line (`aqara-account-manage.md` step 2, `home-space-manage.md` step 0).
+- **Switch home:** **Must** re-fetch homes and let the user choose (`home-space-manage.md`). **Forbidden** default to re-login. **Must** use `aqara-account-manage.md` login only if the user demands re-login/token rotation or the API signals expired/unauthorized.
 
-**REST response shape (illustrative)** — `aqara_open_api.py` prints JSON returned by the Open Platform; field names match the live endpoint (example skeleton only):
+### 4. Intent
+
+Categories: space, device query, control, scene, automation, energy. **Multiple intents:** **Must** query before control, in utterance order.
+
+| Intent | `AqaraOpenAPI` methods (details in reference) | Reference |
+|--------|-----------------------------------------------|-----------|
+| Space | `get_homes`, `get_rooms` | `references/home-space-manage.md` |
+| Device query | `get_home_devices`, `post_device_status`; optional `post_device_base_info`, `post_device_log` | `references/devices-inquiry.md` |
+| Device control | `post_device_control` | `references/devices-control.md` |
+| Scene | `get_home_scenes`, `post_execute_scene`, `post_scene_detail_query`, `post_scene_execution_log` | `references/scene-manage.md` |
+| Automation | `get_home_automations`, `post_automation_detail_query`, `post_automation_switch`, `post_automation_execution_log` | `references/automation-manage.md` |
+| Energy | `post_energy_consumption_statistic` | `references/energy-statistic.md` |
+
+### 5. Route and Summarize
+
+**Must** open the matching `references/` doc, run scripts, summarize from **actual** output only. **Forbidden** fabricate success or any home/room/device/state not in script/API output (**Ground truth**).
+
+### Illustrative CLI JSON (Agents Only)
+
+**Forbidden** paste these raw blocks to end users.
+
+REST shape (skeleton):
 
 ```json
 {
@@ -86,7 +116,7 @@ Align with **usage** and **core workflow** above; implement in order:
 }
 ```
 
-**On bad params or JSON parse errors (illustrative)** —
+Bad params / parse error (skeleton):
 
 ```json
 {
@@ -95,46 +125,46 @@ Align with **usage** and **core workflow** above; implement in order:
 }
 ```
 
-### Error handling
+### Error Handling
 
 | Situation | Action |
 |-----------|--------|
-| Device not found | Say no match for "X"; optionally list a few candidate names |
-| Capability not supported | State the unsupported action/attribute; do not pretend success |
-| Home/room not found | Say no hit; suggest checking the home or re-fetching space/device lists per `references/` |
-| Multiple devices match | List matches; ask the user to pick room or full name (one question at a time) |
-| Not signed in / no `aqara_api_key` | Guide login and saving `aqara_api_key`, then continue with home fetch. Scripts raise `MissingAqaraApiKeyError` from `load_api_key()` when the saved key is empty; route to `references/aqara-account-manage.md` |
-| No home selected | Clarify proactively; point to space-management flow. CLI: missing ``home_id`` triggers ``homes/query``; one home auto-writes ``user_account.json``; multiple homes exit with ``home_selection_required`` (see ``references/home-space-manage.md``) |
-| Invalid `aqara_api_key` or auth failure | Ask to re-login or refresh the token (no sensitive leakage). On **home switch**, only treat as auth failure if the home list call fails with an auth-class error - do not require login just because the user said "switch home". **If the platform returns `unauthorized or insufficient permissions` (or equivalent), always follow `references/aqara-account-manage.md` to re-login and save the token; never fake query/control success** |
-| Control path unavailable | Say the device was located but the command could not be sent |
-| Other | Short, understandable summary + retry or check `references/`; do not expose internal URLs or full request headers |
-| Indeterminate | Use `references/` and script output; if it's a skill bug, file an issue in the skill repo |
-| Risk of empty/missing API output | **Do not** invent homes, rooms, devices, or readings to fill the gap; re-run the correct flow or explain the failure - see **Ground truth: no fabricated smart-home data** |
+| Device not found | **Must** state no match; **allowed:** short candidate list. |
+| Capability unsupported | **Must** state unsupported; **Forbidden** imply success. |
+| Home/room not found | **Must** state no hit; **Must** direct next step via `references/` (re-fetch or verify home). |
+| Multiple device matches | **Must** list matches; **Must** one disambiguation question (room or full name). |
+| Not signed in / empty `aqara_api_key` | **Must** login + save per `aqara-account-manage.md`, then homes. `MissingAqaraApiKeyError` → same. |
+| No home selected | **Must** `home-space-manage.md`. No `home_id` → `homes/query`; one home → auto-write; many → `home_selection_required`. |
+| Bad token / auth | **Must** re-login / refresh (no secret leak). **Forbidden** treat **home switch** as auth failure unless home-list returns auth error. `unauthorized or insufficient permissions` (or equivalent) → **Must** re-login per `aqara-account-manage.md`; **Forbidden** fake success. |
+| Control path blocked | **Must** say device found, command not sent. |
+| Other | **Must** short summary + retry/`references/`; **Forbidden** internal URLs or full headers. |
+| Indeterminate | **Must** use `references/` + script output; confirmed bug → **Must** file skill issue. |
+| Empty API data | **Forbidden** invent entities/readings; **Must** re-run or report failure (**Ground truth**). |
+| HTTP / network | **Forbidden** treat as success; **Must** retry or brief explanation; **Forbidden** raw stacks. |
 
 ## Notes
 
-1. Do not expose raw IDs in user-facing replies (device id, position id, home_id, ...).
-2. Default **query before control** for multiple intents in one utterance.
-3. After adding/moving devices or rooms, if matching fails, re-fetch space and device lists via `references/home-space-manage.md` and `references/devices-inquiry.md`, then retry.
-4. User-visible replies: **conclusion first, then detail**; **one** key clarification question at a time.
-5. **Session gate first**: if not signed in, the "conclusion" should guide setup - not pretend devices were controlled.
-6. When `scripts/*.py` must run, **execute automatically**; details follow **mandatory script execution policy** (if defined elsewhere).
-7. After switching account or home, update `user_account.json` and re-run the relevant steps in [`aqara-account-manage.md`](references/aqara-account-manage.md).
-8. Do not echo tokens or full headers; treat `user_account.json` and caches as sensitive.
-9. Device name matching is often fuzzy; ask the user to confirm when multiple hits exist.
-10. In user-visible replies, **do not** print shell commands, script paths, raw stdout (incl. debug JSON), or `references/` filenames; the agent runs scripts; summarize in plain language.
-11. When control APIs return success, keep the closing brief (result + essentials only); **do not** add hedging like "if some lights didn't turn on, tell me" - troubleshoot only when the user reports an issue.
-12. **Anti-hallucination**: Treat **Ground truth: no fabricated smart-home data** as binding for every turn; any user-visible home/room/device/state detail must trace to a real run of this skill's tooling, not to model imagination or general knowledge of "typical" smart homes.
-13. Never invent homes, rooms, devices, scenes, or states: only report data from executed scripts/API responses.
+1. **Forbidden** raw IDs in user text (device, position, `home_id`, …). **Exception:** `automation_id` **allowed** if server desensitized virtual ID.
+2. After layout changes, if match fails: **Must** re-fetch space + devices (`home-space-manage.md`, `devices-inquiry.md`), retry.
+3. User replies: **Must** conclusion first, then detail; **Must** ≤ one clarification question.
+4. **Session gate:** unsigned → **Must** end on setup; **Forbidden** imply control ran.
+5. **Must** run `scripts/*.py` automatically when required (stricter host policy wins).
+6. Account/home change: **Must** update `user_account.json` and re-run [`aqara-account-manage.md`](references/aqara-account-manage.md).
+7. **Forbidden** echo tokens/headers; **Must** treat `user_account.json` and caches as sensitive.
+8. Multiple fuzzy name hits: **Must** user confirm.
+9. User-visible: **Forbidden** shell, paths, raw stdout, debug JSON, `references/` filenames; **Must** plain summary.
+10. Control OK: **Must** brief close; **Forbidden** preemptive hedging; fix only after user reports failure.
 
-## Out of scope
+## Out of Scope
 
-The skill **does not** support:
+**Unsupported** (no create/edit in this wrapper):
 
-- **Video / cameras** - live view, playback
-- **Door locks** - unlock, lock/unlock smart locks (security-sensitive)
-- **Automations (home automation)** - listing, creating, editing, enabling, disabling, or manually triggering; use the Aqara Home app.
-- **Energy** - power usage / billing
-- **Weather** - forecasts
+- **Cameras** — live / playback.
+- **Locks** — unlock / lock-unlock.
+- **Scene authoring** — only ops in `references/scene-manage.md`.
+- **Automation authoring** — only ops in `references/automation-manage.md`.
+- **Shortcuts** (e.g. Siri lists) — **Must** point to **Aqara Home app**.
+- **Weather** — outside this API.
+- **Entertainment** — beyond `references/devices-control.md`.
 
-If asked for an unsupported capability, say clearly that the skill cannot do it and suggest the Aqara Home app.
+**When** user asks for unsupported: **Must** say unsupported (or not yet); **Must** direct to **Aqara Home app** if the app covers it.
