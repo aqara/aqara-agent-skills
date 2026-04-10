@@ -4,32 +4,19 @@
 
 **Must** locate devices before control. **Must** user-facing: outcome first; zh users: success = affirmative + location + device + outcome; failure = short `{location}{device} control failed` (or omit location if unknown). **Must** add auth/next steps only when required (`Auth failure`, end of reply patterns).
 
-## Action Table
+## Control slots (`attribute` / `action` / `value`)
 
-| attribute | action | value |
-| --- | --- | --- |
-| on_off | on,count,off,query | on,off |
-| brightness | up,query,down,set | empty, number, max, min |
-| color_temperature | up,query,down,set | empty, number, warm, cool |
-| color | query,set | green,yellow,orange,purple,white,red,blue |
-| online_offline | count,query | online,offline |
-| ac_mode | query,set | empty, heat, dry, cool, auto, fan |
-| temperature | up,query,down,set | empty, number, max, min |
-| wind_speed | up,query,down,set | empty, low_speed, min, max, medium_speed, high_speed |
-| wind_direction | query,set | on,off,left_right,up_down |
-| percentage | up,query,down,set | number |
-| motion | set | stop |
-| sweep | set | on,continue,off,stop |
-| volume | up,down,set | empty, number, max, min |
-| play_mode | set | single_cycle,shuffle,order |
-| play_control | set | play,previous,continue,stop,next |
-| count | query | online,offline |
+The former **Action Table** and per-`device_type` hints are **merged** into one file: **`assets/device_control_action_table.csv`**.
+
+**Must** read that CSV before mapping user intent to slots (after devices are located). Columns: `device_type`, `attribute`, `action`, `value_range`, `default_value`, `unit`, `category_name_zh`, `category_name_en`. **Must** extend **only** the CSV when adding attributes or device families - **do not** reintroduce a separate Action Table in this doc.
+
+**Row match (same as CSV semantics):** For each endpoint, take `device_type` from `get_home_devices`. A CSV row applies if its **`device_type`** cell is **`Any`** (use that row for every endpoint for that **`attribute`**) **or** the cell is a **substring** of `device_type`. If a cell contains **`/`** (legacy compact form), **either** side matching as substring applies. **Current CSV** lists `WindowCovering`, `ClotheDryingMachine`, `Speaker`, and `VideoDoorbell` as **separate** rows (no combined `Speaker/VideoDoorbell` cell). Hints are not a substitute for live API behavior - tenant may differ.
 
 ## Workflow
 
 1. **Split** multi-device/action utterances; semantic order; **Must** query before control if both in one sub-request.
-2. **Locate:** `home-space-manage.md` + `devices-inquiry.md` list. Generic categories (“all lights”, AC, curtains): **Must** filter `get_home_devices` by `device_type` substring (`devices-inquiry.md` table). Multi-match → `endpoint_id` → `device_ids`.
-3. **Map** user intent → `attribute` / `action` / `value`. Unsupported capability → **Must** say unsupported.
+2. **Locate:** `home-space-manage.md` + `devices-inquiry.md` list. Generic categories ("all lights", AC, curtains): **Must** filter `get_home_devices` by `device_type` substring (`devices-inquiry.md` table). Multi-match -> `endpoint_id` -> `device_ids`.
+3. **Map** user intent -> `attribute` / `action` / `value`: **Must** use **`assets/device_control_action_table.csv`** only. Unsupported capability -> **Must** say unsupported.
 4. **Send:**
 
 ```bash
@@ -58,7 +45,7 @@ Localize. Multi-step: one sentence per step or summary + lines.
 
 ### Auth
 
-**`unauthorized or insufficient permissions`:** **Must** `aqara-account-manage.md` (re-login); **Forbidden** only generic failure line without guidance; **Allowed:** add localized “sign in again and retry” with failure pattern.
+**`unauthorized or insufficient permissions`:** **Must** `aqara-account-manage.md` (re-login); **Forbidden** only generic failure line without guidance; **Allowed:** add localized "sign in again and retry" with failure pattern.
 
 ## Auth Failure
 

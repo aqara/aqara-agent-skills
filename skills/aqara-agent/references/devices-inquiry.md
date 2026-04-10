@@ -3,8 +3,8 @@
 ## Step 1: Sub-Intent
 
 - **`devices_detail`:** list/count, which room, device inventory.
-- **`query_state`:** live attributes (online, temp, humidity, switch, …).
-- Unclear → start `devices_detail`, then clarify.
+- **`query_state`:** live attributes (online, temp, humidity, switch, ...).
+- Unclear -> start `devices_detail`, then clarify.
 
 ## Workflow
 
@@ -26,25 +26,25 @@ python3 scripts/aqara_open_api.py post_device_status '{"device_ids":["device_id_
 
    Else stop after list/detail for `devices_detail`.
 
-3. **Reply:** conclusion first; online/offline, room, key values; sort room → name; **Forbidden** raw device/position ids in user text.
+3. **Reply:** conclusion first; online/offline, room, key values; sort room -> name; **Forbidden** raw device/position ids in user text.
 
-## Device Type → Category (Substring on `device_type`)
+## Device Type -> Category (Substring on `device_type`)
 
 **Rule:** category match when `device_type` **contains** substring (API casing, usually PascalCase).
 
-| `device_type` contains | EN examples | `fuzzy_category_name_zh` |
+| `device_type` contains | EN examples | Extra fuzzy hints (localized speech) |
 | --- | --- | --- |
-| `Light` | lights, lamps | 灯 |
-| `AirConditioner` | AC, air conditioner | 空调 |
-| `WindowCovering` | curtains, shades | 窗帘 |
-| `ClotheDryingMachine` | drying rack | 晾衣架 |
-| `SweepingRobot` | robot vacuum | 扫地机器人 |
-| `Speaker` | smart speaker | 音响 |
-| `Camera` | camera (video) | 摄像机, 摄像头 |
-| `VideoDoorbell` | doorbell | 门铃 |
-| `PetFeeder` | pet feeder | 宠物喂食器 |
+| `Light` | lights, lamps | light, lamp, bulb, fixture |
+| `AirConditioner` | AC, air conditioner | cooling, heating, HVAC |
+| `WindowCovering` | curtains, shades | blind, drape, shutter |
+| `ClotheDryingMachine` | drying rack | laundry rack, clothes dryer (rack) |
+| `SweepingRobot` | robot vacuum | floor robot, vacuum bot |
+| `Speaker` | smart speaker | audio, sound bar |
+| `Camera` | camera (video) | cam, security camera |
+| `VideoDoorbell` | doorbell | video door, chime |
+| `PetFeeder` | pet feeder | animal feeder |
 
-Extend when new families appear. **Control** after resolve → `devices-control.md`.
+Extend when new families appear. **Control** after resolve -> `devices-control.md`.
 
 ## Optional: `post_device_base_info`, `post_device_log`
 
@@ -62,16 +62,16 @@ Bodies follow live Open API.
 
 ## Disambiguation
 
-- **Must** ≤ one key question when needed (name clash, missing room).
-- No match: **Must** say so + 2–5 candidate names + example phrasing.
+- **Must** <= one key question when needed (name clash, missing room).
+- No match: **Must** say so + 2-5 candidate names + example phrasing.
 
 ## Failure
 
 - **Forbidden** raw error codes to user.
-- No match → state + candidates. Stale layout → **Must** re-run `get_home_devices` and retry.
-- Ambiguous → list conflicts; one question (room or full name).
-- Live state failed → say so; cached only if actually held.
-- **`unauthorized or insufficient permissions`:** **Forbidden** retry business APIs with old token; **Must** `aqara-account-manage.md` re-login → refresh homes/devices.
+- No match -> state + candidates. Stale layout -> **Must** re-run `get_home_devices` and retry.
+- Ambiguous -> list conflicts; one question (room or full name).
+- Live state failed -> say so; cached only if actually held.
+- **`unauthorized or insufficient permissions`:** **Forbidden** retry business APIs with old token; **Must** `aqara-account-manage.md` re-login -> refresh homes/devices.
 
 ## Output Templates
 

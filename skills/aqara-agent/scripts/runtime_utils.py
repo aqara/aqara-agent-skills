@@ -5,9 +5,38 @@
 from __future__ import annotations
 
 import json
+import sys
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Dict, List, Optional
+
+_stdio_utf8_configured = False
+
+
+def configure_stdio_utf8() -> None:
+    """
+    Use UTF-8 for stdout/stderr when possible (notably Windows + PowerShell/cmd).
+
+    Without this, ``print(..., ensure_ascii=False)`` can produce mojibake for Chinese
+    when the console code page differs from UTF-8.
+    """
+    global _stdio_utf8_configured
+    if _stdio_utf8_configured:
+        return
+    _stdio_utf8_configured = True
+    if sys.platform != "win32":
+        return
+    for name in ("stdout", "stderr"):
+        stream = getattr(sys, name, None)
+        if stream is None:
+            continue
+        reconfigure = getattr(stream, "reconfigure", None)
+        if not callable(reconfigure):
+            continue
+        try:
+            reconfigure(encoding="utf-8", errors="replace")
+        except (OSError, ValueError, TypeError, AttributeError):
+            pass
 
 SCRIPT_DIR = Path(__file__).resolve().parent
 SKILL_ROOT = SCRIPT_DIR.parent
@@ -87,6 +116,7 @@ def _unlink_legacy_pairing_artifacts() -> None:
 
 
 def print_json(payload: dict) -> None:
+    configure_stdio_utf8()
     print(json.dumps(payload, ensure_ascii=False, indent=2))
 
 

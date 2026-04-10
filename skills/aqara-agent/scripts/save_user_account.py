@@ -4,17 +4,19 @@
 from __future__ import annotations
 
 import argparse
-import json
-import subprocess
 import sys
 from pathlib import Path
 
 _SCRIPT_DIR = Path(__file__).resolve().parent
-_SKILL_ROOT = _SCRIPT_DIR.parent
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
-from runtime_utils import merge_user_context_home_info, print_json, set_aqara_api_key
+from runtime_utils import (
+    configure_stdio_utf8,
+    merge_user_context_home_info,
+    print_json,
+    set_aqara_api_key,
+)
 
 # When argv[0] is already a subcommand, do not prepend api-key
 _SUBCOMMAND_PREFIXES = frozenset({"api-key", "aqara_api_key", "home"})
@@ -43,21 +45,12 @@ def _cmd_api_key(args: argparse.Namespace) -> int:
         print_json({"ok": False, "message": str(e)})
         return 2
 
-    written = {"ok": True, "message": "Written aqara_api_key and updated_at to assets/user_account.json"}
-    if args.continue_chain:
-        get_user_info = _SCRIPT_DIR / "call_get_user_info.py"
-        if not get_user_info.is_file():
-            print_json({"ok": False, "message": f"missing {get_user_info} (drop --continue or add script)"})
-            return 1
-        written["next"] = "call_get_user_info.py"
-        print(json.dumps(written, ensure_ascii=False, indent=2), file=sys.stderr)
-        r = subprocess.run(
-            [sys.executable, str(get_user_info)],
-            cwd=str(_SKILL_ROOT),
-        )
-        return r.returncode if r.returncode != 0 else 0
-
-    print_json(written)
+    print_json(
+        {
+            "ok": True,
+            "message": "Written aqara_api_key and updated_at to assets/user_account.json",
+        }
+    )
     return 0
 
 
@@ -122,13 +115,6 @@ def build_parser() -> argparse.ArgumentParser:
     )
     pk.add_argument("-f", "--file", type=Path, help="Read key from UTF-8 file (stripped)")
     pk.add_argument("--dry-run", action="store_true", help="Validate only; do not write")
-    pk.add_argument(
-        "--continue",
-        dest="continue_chain",
-        action=argparse.BooleanOptionalAction,
-        default=False,
-        help="After write, run call_get_user_info.py if present (default: false)",
-    )
     pk.set_defaults(handler=_cmd_api_key)
 
     ph = sub.add_parser("home", help="Write home_id, optional home_name, and updated_at")
@@ -146,6 +132,7 @@ def build_parser() -> argparse.ArgumentParser:
 
 
 def main(argv: list[str] | None = None) -> int:
+    configure_stdio_utf8()
     if argv is None:
         argv = sys.argv[1:]
     if not argv:

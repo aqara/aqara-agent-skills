@@ -18,6 +18,7 @@ from runtime_utils import (
     MissingAqaraApiKeyError,
     MultipleHomesMustSelectError,
     NoHomesAvailableError,
+    configure_stdio_utf8,
     load_api_key,
     merge_user_context_home_info,
 )
@@ -31,7 +32,6 @@ def _default_open_host() -> str:
 
 def _default_api_base_url() -> str:
     return f"https://{_default_open_host()}/open/api"
-    # return f"http://127.0.0.1:8001/back"
 
 
 def _resolve_api_base_url(explicit: Optional[str] = None) -> str:
@@ -146,8 +146,6 @@ class AqaraOpenAPI:
         self.api_key = key
         self.base_url = _resolve_api_base_url(api_base_url)
         self.session = requests.Session()
-        # fixme（临时写死自测用）
-        # self.session.headers.update({"user_id": "472690618981508f.685517567833059329"})
         self.session.headers.update({"application_id": "AqaqaAgentSkills"})
         self.session.headers.update({"Authorization": f"Bearer {key}"})
         if home_id and str(home_id).strip():
@@ -175,6 +173,7 @@ class AqaraOpenAPI:
         resp.raise_for_status()
         return resp.json()
 
+    
     # ─── Home management ───
     def get_homes(self, lang: str = "zh") -> Any:
         """List all homes for the current user.
@@ -195,6 +194,14 @@ class AqaraOpenAPI:
         """GET home/positions/query (rooms / positions in current home)."""
         self._require_position_id()
         return self._get("home/positions/query")
+
+    def post_current_outdoor_weather(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """
+        GET current outdoor weather for the home context
+        """
+        self._require_position_id()
+        path =  "current/weather/query"
+        return self._post(path, data=data or {})
 
     # ─── Device info ───
     def get_home_devices(self) -> Any:
@@ -219,10 +226,13 @@ class AqaraOpenAPI:
         self._require_position_id()
         return self._post("device/control", data=data or {})
 
+
+    # ─── Device _log ───
     def post_device_log(self, data: Optional[Dict[str, Any]] = None) -> Any:
         """POST device/status/log/query."""
         self._require_position_id()
         return self._post("device/status/log/query", data=data or {})
+    
 
     # ─── Scene management ───
     def get_home_scenes(self) -> Any:
@@ -240,6 +250,105 @@ class AqaraOpenAPI:
         self._require_position_id()
         return self._post("scene/detail/query", data=data or {})
 
+    def post_create_scene(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST scene/create.
+
+        JSON body (skill contract; tenant may alias keys — align with live API if needed):
+
+        - ``scene_name`` (str): required, non-empty.
+        - ``position_id`` (str): required, non-empty — room position id from ``get_rooms``.
+        - ``scene_data`` (list): required, non-empty. Each element: ``device_ids`` (non-empty
+          list of str), ``slots`` (list of objects with ``attribute``, ``action``, ``value``).
+          Default ``action`` is ``set`` when omitted. Lighting effects: ``attribute``
+          ``lighting_effect``, ``action`` ``set``, ``value`` = effect name. For ``color``,
+          ``value`` should be English lowercase.
+
+        See ``references/scene-workflow/create.md``.
+        """
+        self._require_position_id()
+        body: Dict[str, Any] = dict(data or {})
+        sn = body.get("scene_name")
+        if not isinstance(sn, str) or not sn.strip():
+            raise ValueError(
+                "post_create_scene requires non-empty scene_name (see references/scene-workflow/create.md)."
+            )
+        body["scene_name"] = sn.strip()
+        pid = body.get("position_id")
+        if not isinstance(pid, str) or not pid.strip():
+            raise ValueError(
+                "post_create_scene requires non-empty position_id (room id from get_rooms)."
+            )
+        body["position_id"] = pid.strip()
+        sd = body.get("scene_data")
+        if not isinstance(sd, list) or len(sd) == 0:
+            raise ValueError(
+                "post_create_scene requires non-empty scene_data (see references/scene-workflow/create.md)."
+            )
+        for i, block in enumerate(sd):
+            if not isinstance(block, dict):
+                raise ValueError(f"scene_data[{i}] must be a JSON object.")
+            dids = block.get("device_ids")
+            if not isinstance(dids, list) or len(dids) == 0:
+                raise ValueError(
+                    f"scene_data[{i}].device_ids must be a non-empty list of strings."
+                )
+            norm_ids: List[str] = []
+            for k, d in enumerate(dids):
+                if not isinstance(d, str) or not d.strip():
+                    raise ValueError(
+                        f"scene_data[{i}].device_ids[{k}] must be a non-empty string."
+                    )
+                norm_ids.append(d.strip())
+            block["device_ids"] = norm_ids
+            slots = block.get("slots")
+            if not isinstance(slots, list):
+                raise ValueError(f"scene_data[{i}].slots must be a list.")
+            for j, slot in enumerate(slots):
+                if not isinstance(slot, dict):
+                    raise ValueError(f"scene_data[{i}].slots[{j}] must be a JSON object.")
+                attr = slot.get("attribute")
+                if attr == "lighting_effect":
+                    slot["action"] = "set"
+                elif not slot.get("action"):
+                    slot["action"] = "set"
+                if attr == "color" and isinstance(slot.get("value"), str):
+                    slot["value"] = str(slot["value"]).strip().lower()
+        return self._post("scene/create", data=body)
+
+    def post_scene_snapshot(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST scene/snapshot.
+        JSON body (after normalization):
+
+        - ``snap_name`` (str): Snapshot display name. If missing or whitespace-only,
+          defaults to ``场景快照`` when ``AQARA_DEFAULT_LOCALE`` is unset or starts
+          with ``zh``, otherwise ``scene snapshot``.
+        - ``position_ids`` (list[str]): Room position IDs (**required**, non-empty).
+        """
+        self._require_position_id()
+        body: Dict[str, Any] = dict(data or {})
+        snap = body.get("snap_name")
+        if not (isinstance(snap, str) and snap.strip()):
+            loc = (os.environ.get("AQARA_DEFAULT_LOCALE") or "").strip().lower()
+            if not loc or loc.startswith("zh"):
+                body["snap_name"] = "场景快照"
+            else:
+                body["snap_name"] = "scene snapshot"
+        else:
+            body["snap_name"] = str(snap).strip()
+        pids = body.get("position_ids")
+        if not isinstance(pids, list) or len(pids) == 0:
+            raise ValueError(
+                "post_scene_snapshot requires non-empty position_ids (list of room position id strings). "
+                "Resolve rooms via get_rooms first (see references/scene-workflow/snapshot.md)."
+            )
+        normalized: List[str] = []
+        for x in pids:
+            if not isinstance(x, str) or not x.strip():
+                raise ValueError("position_ids must be a list of non-empty strings.")
+            normalized.append(x.strip())
+        body["position_ids"] = normalized
+        return self._post("scene/snapshot", data=body)
+    
     def post_scene_execution_log(self, data: Optional[Dict[str, Any]] = None) -> Any:
         """POST scene/execution/log/query."""
         self._require_position_id()
@@ -289,6 +398,7 @@ class AqaraOpenAPI:
 # CLI: first argv must match a public method name on :class:`AqaraOpenAPI` (see references/*.md).
 # Dispatch: ``get_*`` → ``meth()``; ``post_*`` → ``meth(payload)``.
 def _print_json(data: Any) -> None:
+    configure_stdio_utf8()
     print(json.dumps(data, ensure_ascii=False, indent=2))
 
 
@@ -313,6 +423,7 @@ def _cli_invoke(api: AqaraOpenAPI, method_name: str, payload: Dict[str, Any]) ->
 
 
 def main() -> None:
+    configure_stdio_utf8()
     if len(sys.argv) < 2:
         print("Usage: aqara_open_api.py <tool> [json_body]", file=sys.stderr)
         sys.exit(1)

@@ -2,8 +2,8 @@
 
 ## Overview
 
-- **Flow:** sign in → save `aqara_api_key` → fetch homes → select home.
-- **Switch home:** valid `aqara_api_key` exists → **Must** use `home-space-manage.md` step `0` first; **Forbidden** default to re-login.
+- **Flow:** sign in -> save `aqara_api_key` -> fetch homes -> select home.
+- **Switch home:** valid `aqara_api_key` exists -> **Must** use `home-space-manage.md` step `0` first; **Forbidden** default to re-login.
 - **Re-login:** **Must** only if user requests it or response is `unauthorized or insufficient permissions` (or equivalent).
 
 ## Step 1: Login Guidance (User-Facing)
@@ -20,7 +20,7 @@
 1. `instruction_paragraph`.
 2. **Single-line** URL: `[official_open_login_url](official_open_login_url)` or plain URL if no Markdown.
 3. **Forbidden** repeat the same URL twice.
-4. **Forbidden** extra closings (“paste key / I will save / fetch homes”).
+4. **Forbidden** extra closings ("paste key / I will save / fetch homes").
 
 ### Canonical Template
 
@@ -49,15 +49,15 @@ python3 scripts/aqara_open_api.py get_homes
 
 ## Step 4: Continue Home Flow
 
-- **Must** `home-space-manage.md` step `0` first; single home → auto-write (step `2`); multiple → step `1`.
-- **Forbidden** reply only “please send home name” without fetch.
+- **Must** `home-space-manage.md` step `0` first; single home -> auto-write (step `2`); multiple -> step `1`.
+- **Forbidden** reply only "please send home name" without fetch.
 
 ## Notes
 
 - **Forbidden** internal step numbers, `user_account.json` path, or script commands to the user.
 - **Forbidden** describe overwrite internals.
-- Switch home ≠ expired token: **Must** fetch homes first, then decide re-login.
+- Switch home != expired token: **Must** fetch homes first, then decide re-login.
 
 ## Logout
 
-- User asks to log out → **Must** give: `https://agent.aqara.com/logout`.
+- User asks to log out -> **Must** give: `https://agent.aqara.com/logout`.
