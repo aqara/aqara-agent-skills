@@ -141,6 +141,28 @@ def _read_stored_credentials() -> tuple[Optional[str], Optional[str]]:
         return None, None
 
 
+def load_optional_open_api_base_url() -> Optional[str]:
+    """
+    Optional full REST base URL from ``assets/user_account.json`` (e.g. local proxy).
+
+    Tried in order: ``aqara_open_api_url``, ``open_api_url``. Whitespace-only values are ignored.
+    """
+    _migrate_legacy_user_context_file()
+    if not USER_ACCOUNT_PATH.exists():
+        return None
+    try:
+        data = json.loads(USER_ACCOUNT_PATH.read_text(encoding="utf-8"))
+        if not isinstance(data, dict):
+            return None
+        for key in ("aqara_open_api_url", "open_api_url"):
+            v = data.get(key)
+            if isinstance(v, str) and v.strip():
+                return v.strip()
+        return None
+    except Exception:
+        return None
+
+
 def load_api_key(*, require_saved_api_key: bool = True) -> tuple[Optional[str], Optional[str]]:
     """
     Read ``aqara_api_key`` and ``home_id`` from ``user_account.json``.

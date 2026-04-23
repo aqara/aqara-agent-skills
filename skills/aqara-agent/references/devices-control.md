@@ -1,5 +1,11 @@
 # Device Control
 
+## Not Control (Routing)
+
+**Firmware / OTA / device software upgrade** is **device configuration**, not `post_device_control`. **Must** use `references/devices-config.md` — **Forbidden** use `assets/device_control_action_table.csv` for upgrade intents.
+
+**Scheduled device control** and **delayed device control** (as opposed to **immediate** `post_device_control`): whenever NL / intent falls in this category (time or clock as the trigger premise, then control devices or spatial targets such as lights / AC / curtains), semantically this is equivalent to **adding an automation** in Aqara Home (executed by cloud / gateway), **Must** **go straight into** the full [`automation-create.md`](automation-create.md) flow: `get_home_devices` and other grounding → Steps 01–03 → **`post_create_automation`** (time and condition splits: **`automation-create-workflow/`**). **Forbidden** to replace that business path with host-side `sleep` / timers / cron, or ad hoc "call `post_device_control` later" schemes as the primary approach (when the API is unavailable, only explain the blocker; **forbidden** to pretend an automation was created).
+
 ## Goal
 
 **Must** locate devices before control. **Must** user-facing: outcome first; zh users: success = affirmative + location + device + outcome; failure = short `{location}{device} control failed` (or omit location if unknown). **Must** add auth/next steps only when required (`Auth failure`, end of reply patterns).

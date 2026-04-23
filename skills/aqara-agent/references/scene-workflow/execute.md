@@ -2,6 +2,10 @@
 
 Run saved catalog scenes by natural language or explicit name. **Must** follow [`scene-manage.md`](../scene-manage.md) for session, execution order, cross-intent rules, and **[Scene name matching (shared)](../scene-manage.md#scene-name-matching-shared)**.
 
+## Timed / delayed scene execution (routing)
+
+Utterances classified as **scheduled scene control** or **delayed scene control** (time or schedule condition + run a **catalog** scene, **not** an immediate run): **Must** follow [`automation-create.md`](../automation-create.md) and **`post_create_automation`** — **Forbidden** this document’s **`post_execute_scene`** path as the primary solution, and **Forbidden** host-side timers that only defer **`post_execute_scene`**. Intent classification is open-ended (no fixed example sentence). See [`scene-manage.md`](../scene-manage.md#not-immediate-catalog-execute-routing).
+
 ## Explicit create / recommend intent
 
 Use when the user **directly** asks to **create**, **design**, or **have you recommend** a scene for a situation (e.g. "help me create a scene that fits coming home", "recommend a bedtime scene", "set up a movie mode"), **not** only "run / execute scene X".
@@ -12,7 +16,7 @@ Use when the user **directly** asks to **create**, **design**, or **have you rec
 
 ## Workflow (natural-language execution - run existing catalog scene)
 
-Use this when the user asks to **run** a scene in natural language (e.g. "help me run a homecoming scene", "goodnight scene in the bedroom"), **without** wording that is primarily **create / recommend** (see above).
+Use this when the user asks to **run** a scene in natural language (e.g. "help me run a homecoming scene", "goodnight scene in the bedroom"), **without** wording that is primarily **create / recommend** (see above), and **without** **[Timed / delayed scene execution](#timed--delayed-scene-execution-routing)** (if that applies, **Must** branch to **`automation-create.md`** first — **Must not** continue here for immediate execute).
 
 1. **Trigger** - **Must** treat such utterances as **execute** intent under this reference (not device control until fallback below).
 2. **Rooms** - **Must** fetch the current home's rooms via API (`get_rooms`; see `references/home-space-manage.md`).

@@ -21,19 +21,26 @@ Use **only** when the user **clearly** requests a **scene snapshot** (capture cu
    - **Whole home** snapshot: only if the user **explicitly** asks for whole-home snapshot **and** the platform supports passing the corresponding position id set; otherwise **Must** ask which room(s).
 
 4. **Snapshot name (`snap_name`)** - **Required** in the API payload; **Must** never be empty or whitespace-only (**Forbidden** `snap_name` that normalizes to `""`).
-   - **From query** - **Must** extract a short snapshot title from the user's wording when present (strip fixed phrases like "create scene snapshot", "scene snapshot", "please help", etc., and keep the meaningful fragment, e.g. "Living room arrival snapshot"). The **value sent to the API** after extraction **Must** be non-empty: if extraction yields nothing usable, **Must** use the localized default below (still non-empty).
-   - **Default** when the user does not supply a usable name - zh locale - default string is applied by CLI for Chinese; for English (and other non-zh) - `scene snapshot`. The CLI wrapper applies the same default when `snap_name` is omitted or blank (`AQARA_DEFAULT_LOCALE`: unset or `zh*` uses Chinese default string in wrapper; else `scene snapshot`).
+   - **From query** - **Must** extract a short snapshot title from the user's wording when present (strip fixed phrases like "create scene snapshot", "scene snapshot", "please help", etc., and keep the meaningful fragment, e.g. "Living room arrival snapshot"). The **value sent to the API** after extraction **Must** be non-empty: if extraction yields nothing usable, **Must** use the localized default in [JSON body (`post_scene_snapshot`)](#json-body-post_scene_snapshot) (still non-empty).
+   - **Default** when the user does not supply a usable name — **Must** set `snap_name` per that section from **`AQARA_DEFAULT_LOCALE`** (process env when invoking the CLI).
 
-   Note: the literal default strings for `snap_name` are defined in `aqara_open_api.py` (Chinese vs English); this reference does not embed non-ASCII in examples. Set `AQARA_DEFAULT_LOCALE` as documented there.
-
-5. **Create snapshot** - **Must** call `post_scene_snapshot` with JSON **`snap_name`** + **`position_ids`** (non-empty list of strings). Example:
+5. **Create snapshot** - **Must** build the JSON per [JSON body (`post_scene_snapshot`)](#json-body-post_scene_snapshot), then call **`post_scene_snapshot`**. The CLI forwards the body **unchanged** to **`scene/snapshot`**. Example:
 
    ```bash
    python3 scripts/aqara_open_api.py post_scene_snapshot '{"snap_name":"Living room snapshot","position_ids":["<room_position_id_from_get_rooms>"]}'
    ```
 
-   Omitted `snap_name` - wrapper fills default per `AQARA_DEFAULT_LOCALE` rule in `aqara_open_api.py`. **Forbidden** empty **`position_ids`**.
+   **Forbidden** empty **`position_ids`** or blank **`snap_name`** in the object you pass (after applying the default rule yourself when needed).
 
 6. **Reply** - **Must** summarize success/failure from the real response only; **Forbidden** raw internal ids in user text (**`SKILL.md`**). On **`unauthorized or insufficient permissions`**, **Must** `aqara-account-manage.md` then retry.
+
+## JSON body (`post_scene_snapshot`)
+
+`aqara_open_api.py` **`post_scene_snapshot`** sends the JSON body **unchanged** to **`scene/snapshot`**. **Must** shape the payload before the call; invalid bodies surface as API errors.
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `snap_name` | string | **Required**, non-empty after trim. If the user (or extraction) does not yield a usable title, **Must** set the default from **`AQARA_DEFAULT_LOCALE`** (environment when running the CLI): if unset or the value starts with **`zh`** (case-insensitive), use **`Scene snapshot`**; otherwise use **`scene snapshot`**. |
+| `position_ids` | array of strings | **Required**, non-empty; each element a non-empty room position id string after trim. Resolve ids via **`get_rooms`** (see [Workflow](#workflow) step 3). |
 
 **Related:** [Create scene](create.md), [Scene execute](execute.md), [`scene-manage.md`](../scene-manage.md).

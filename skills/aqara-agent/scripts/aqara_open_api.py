@@ -2,8 +2,8 @@
 """
 Aqara Smart Home Open Platform REST API wrapper.
 
-Base URL: ``https://<AQARA_OPEN_HOST>/open/api`` by default, or override with
-``AQARA_OPEN_API_URL`` (full URL, no trailing slash required).
+Default REST  Override with ``AQARA_OPEN_API_URL``
+(full URL, no trailing slash required). Optional legacy host: ``AQARA_OPEN_HOST`
 
 HTTP timeout (seconds): ``AQARA_OPEN_HTTP_TIMEOUT`` (default 60) for ``_get`` / ``_post``.
 """
@@ -20,6 +20,7 @@ from runtime_utils import (
     NoHomesAvailableError,
     configure_stdio_utf8,
     load_api_key,
+    load_optional_open_api_base_url,
     merge_user_context_home_info,
 )
 
@@ -27,8 +28,8 @@ _DEFAULT_OPEN_TIMEOUT = float(os.environ.get("AQARA_OPEN_HTTP_TIMEOUT") or "60")
 
 
 def _default_open_host() -> str:
-    # return (os.environ.get("AQARA_OPEN_HOST") or "agent.aqara.com").strip()
-    return (os.environ.get("AQARA_OPEN_HOST") or "agent.aqara.com").strip()
+    return (os.environ.get("AQARA_OPEN_HOST") or "open-cn.aqara.com").strip()
+
 
 def _default_api_base_url() -> str:
     return f"https://{_default_open_host()}/open/api"
@@ -41,6 +42,9 @@ def _resolve_api_base_url(explicit: Optional[str] = None) -> str:
     env_url = (os.environ.get("AQARA_OPEN_API_URL") or "").strip()
     if env_url:
         return env_url.rstrip("/")
+    disk_url = load_optional_open_api_base_url()
+    if disk_url:
+        return disk_url.rstrip("/")
     return _default_api_base_url()
 
 
@@ -131,6 +135,31 @@ def _resolve_home_context_if_needed(api: Any) -> None:
     )
 
 
+def normalize_json_values(data: Any) -> Any:
+    """
+    Recursively normalize JSON-like literals that appear as Python strings.
+
+    ``json.loads`` already maps JSON ``false`` / ``null`` to ``False`` / ``None``.
+    This helper is for payloads where booleans or null were kept as strings
+    (e.g. ``\"false\"``, ``\"true\"``, ``\"null\"``, ``\"none\"``) after merges or
+    hand-edited JSON, so downstream code sees native ``bool`` / ``None``.
+    """
+    if isinstance(data, dict):
+        return {k: normalize_json_values(v) for k, v in data.items()}
+    if isinstance(data, list):
+        return [normalize_json_values(v) for v in data]
+    if isinstance(data, str):
+        s = data.strip()
+        low = s.lower()
+        if low == "true":
+            return True
+        if low == "false":
+            return False
+        if low in ("null", "none"):
+            return None
+    return data
+
+
 class AqaraOpenAPI:
     """Aqara Open API client."""
 
@@ -146,7 +175,8 @@ class AqaraOpenAPI:
         self.api_key = key
         self.base_url = _resolve_api_base_url(api_base_url)
         self.session = requests.Session()
-        self.session.headers.update({"application_id": "AqaqaAgentSkills"})
+        # self.session.headers.update({"user_id": "141276d996103632.832671687548919809"})
+        self.session.headers.update({"application_id": "AqaraAgentSkills"})
         self.session.headers.update({"Authorization": f"Bearer {key}"})
         if home_id and str(home_id).strip():
             self.session.headers.update({"position_id": str(home_id).strip()})
@@ -169,11 +199,12 @@ class AqaraOpenAPI:
 
     def _post(self, path: str, data: Optional[Dict[str, Any]] = None) -> Any:
         url = f"{self.base_url}/{path.lstrip('/')}"
-        resp = self.session.post(url, json=data, timeout=_DEFAULT_OPEN_TIMEOUT)
+        # ``requests`` skips a JSON body when ``json=None``; callers expect ``{}`` for empty POST bodies.
+        payload: Any = {} if data is None else data
+        resp = self.session.post(url, json=payload, timeout=_DEFAULT_OPEN_TIMEOUT)
         resp.raise_for_status()
         return resp.json()
 
-    
     # ─── Home management ───
     def get_homes(self, lang: str = "zh") -> Any:
         """List all homes for the current user.
@@ -200,7 +231,7 @@ class AqaraOpenAPI:
         GET current outdoor weather for the home context
         """
         self._require_position_id()
-        path =  "current/weather/query"
+        path =  "weather/query"
         return self._post(path, data=data or {})
 
     # ─── Device info ───
@@ -226,13 +257,22 @@ class AqaraOpenAPI:
         self._require_position_id()
         return self._post("device/control", data=data or {})
 
-
     # ─── Device _log ───
     def post_device_log(self, data: Optional[Dict[str, Any]] = None) -> Any:
         """POST device/status/log/query."""
         self._require_position_id()
         return self._post("device/status/log/query", data=data or {})
-    
+
+    # ─── Device firmware (read query + OTA upgrade; not runtime attribute control) ───
+    def post_device_firmware_query(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST ``device/firmware/query`` — firmware info / version query. ``data``: request JSON body."""
+        self._require_position_id()
+        return self._post("device/firmware/query", data=data or {})
+
+    def post_device_firmware_upgrade(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """POST ``device/firmware/upgrade``. See references/devices-config.md."""
+        self._require_position_id()
+        return self._post("device/firmware/upgrade", data=data or {})
 
     # ─── Scene management ───
     def get_home_scenes(self) -> Any:
@@ -251,103 +291,14 @@ class AqaraOpenAPI:
         return self._post("scene/detail/query", data=data or {})
 
     def post_create_scene(self, data: Optional[Dict[str, Any]] = None) -> Any:
-        """POST scene/create.
-
-        JSON body (skill contract; tenant may alias keys — align with live API if needed):
-
-        - ``scene_name`` (str): required, non-empty.
-        - ``position_id`` (str): required, non-empty — room position id from ``get_rooms``.
-        - ``scene_data`` (list): required, non-empty. Each element: ``device_ids`` (non-empty
-          list of str), ``slots`` (list of objects with ``attribute``, ``action``, ``value``).
-          Default ``action`` is ``set`` when omitted. Lighting effects: ``attribute``
-          ``lighting_effect``, ``action`` ``set``, ``value`` = effect name. For ``color``,
-          ``value`` should be English lowercase.
-
-        See ``references/scene-workflow/create.md``.
-        """
+        """POST scene/create. Request body: ``references/scene-workflow/create.md``."""
         self._require_position_id()
-        body: Dict[str, Any] = dict(data or {})
-        sn = body.get("scene_name")
-        if not isinstance(sn, str) or not sn.strip():
-            raise ValueError(
-                "post_create_scene requires non-empty scene_name (see references/scene-workflow/create.md)."
-            )
-        body["scene_name"] = sn.strip()
-        pid = body.get("position_id")
-        if not isinstance(pid, str) or not pid.strip():
-            raise ValueError(
-                "post_create_scene requires non-empty position_id (room id from get_rooms)."
-            )
-        body["position_id"] = pid.strip()
-        sd = body.get("scene_data")
-        if not isinstance(sd, list) or len(sd) == 0:
-            raise ValueError(
-                "post_create_scene requires non-empty scene_data (see references/scene-workflow/create.md)."
-            )
-        for i, block in enumerate(sd):
-            if not isinstance(block, dict):
-                raise ValueError(f"scene_data[{i}] must be a JSON object.")
-            dids = block.get("device_ids")
-            if not isinstance(dids, list) or len(dids) == 0:
-                raise ValueError(
-                    f"scene_data[{i}].device_ids must be a non-empty list of strings."
-                )
-            norm_ids: List[str] = []
-            for k, d in enumerate(dids):
-                if not isinstance(d, str) or not d.strip():
-                    raise ValueError(
-                        f"scene_data[{i}].device_ids[{k}] must be a non-empty string."
-                    )
-                norm_ids.append(d.strip())
-            block["device_ids"] = norm_ids
-            slots = block.get("slots")
-            if not isinstance(slots, list):
-                raise ValueError(f"scene_data[{i}].slots must be a list.")
-            for j, slot in enumerate(slots):
-                if not isinstance(slot, dict):
-                    raise ValueError(f"scene_data[{i}].slots[{j}] must be a JSON object.")
-                attr = slot.get("attribute")
-                if attr == "lighting_effect":
-                    slot["action"] = "set"
-                elif not slot.get("action"):
-                    slot["action"] = "set"
-                if attr == "color" and isinstance(slot.get("value"), str):
-                    slot["value"] = str(slot["value"]).strip().lower()
-        return self._post("scene/create", data=body)
+        return self._post("scene/create", data=dict(data or {}))
 
     def post_scene_snapshot(self, data: Optional[Dict[str, Any]] = None) -> Any:
-        """POST scene/snapshot.
-        JSON body (after normalization):
-
-        - ``snap_name`` (str): Snapshot display name. If missing or whitespace-only,
-          defaults to ``场景快照`` when ``AQARA_DEFAULT_LOCALE`` is unset or starts
-          with ``zh``, otherwise ``scene snapshot``.
-        - ``position_ids`` (list[str]): Room position IDs (**required**, non-empty).
-        """
+        """POST scene/snapshot. Request body: ``references/scene-workflow/snapshot.md``."""
         self._require_position_id()
-        body: Dict[str, Any] = dict(data or {})
-        snap = body.get("snap_name")
-        if not (isinstance(snap, str) and snap.strip()):
-            loc = (os.environ.get("AQARA_DEFAULT_LOCALE") or "").strip().lower()
-            if not loc or loc.startswith("zh"):
-                body["snap_name"] = "场景快照"
-            else:
-                body["snap_name"] = "scene snapshot"
-        else:
-            body["snap_name"] = str(snap).strip()
-        pids = body.get("position_ids")
-        if not isinstance(pids, list) or len(pids) == 0:
-            raise ValueError(
-                "post_scene_snapshot requires non-empty position_ids (list of room position id strings). "
-                "Resolve rooms via get_rooms first (see references/scene-workflow/snapshot.md)."
-            )
-        normalized: List[str] = []
-        for x in pids:
-            if not isinstance(x, str) or not x.strip():
-                raise ValueError("position_ids must be a list of non-empty strings.")
-            normalized.append(x.strip())
-        body["position_ids"] = normalized
-        return self._post("scene/snapshot", data=body)
+        return self._post("scene/snapshot", data=dict(data or {}))
     
     def post_scene_execution_log(self, data: Optional[Dict[str, Any]] = None) -> Any:
         """POST scene/execution/log/query."""
@@ -360,7 +311,7 @@ class AqaraOpenAPI:
         self._require_position_id()
         return self._get("home/automations/query")
 
-    def post_automation_detail_query(self, data: Optional[Dict[str, Any]] = None) -> Any:
+    def post_device_related_automation_query(self, data: Optional[Dict[str, Any]] = None) -> Any:
         """POST automation/detail/query."""
         self._require_position_id()
         return self._post("automation/detail/query", data=data or {})
@@ -375,15 +326,60 @@ class AqaraOpenAPI:
         self._require_position_id()
         return self._post("automation/switch", data=data or {})
 
+    def post_create_automation(
+        self,
+        raw_config: Optional[Dict[str, Any]] = None,
+        auxiliary_config: Optional[Dict[str, Any]] = None,
+    ) -> Any:
+        """
+        POST automation/create.
+
+        Accepts either (``raw_config``, ``auxiliary_config``) as two dicts, or a
+        single envelope ``{"raw_config": ..., "auxiliary_config": ...}`` passed
+        as ``raw_config`` only (e.g. CLI JSON for Step 3 follow-up).
+        """
+        self._require_position_id()
+
+        rc_in: Optional[Dict[str, Any]] = (
+            dict(raw_config) if isinstance(raw_config, dict) and raw_config else None
+        )
+        aux: Optional[Dict[str, Any]] = None
+        if isinstance(auxiliary_config, dict) and auxiliary_config:
+            aux = dict(auxiliary_config)
+
+        # Unwrap one-arg envelope from CLI / hosts that merge both keys into one object.
+        if (
+            rc_in is not None
+            and aux is None
+            and isinstance(rc_in.get("raw_config"), dict)
+            and rc_in.get("raw_config")
+        ):
+            inner = rc_in.get("auxiliary_config")
+            if isinstance(inner, dict) and inner:
+                aux = dict(inner)
+            rc_in = dict(rc_in["raw_config"])
+
+        raw: Dict[str, Any] = rc_in if isinstance(rc_in, dict) and rc_in else {}
+
+        # Single-arg Step 03 payload often arrives as the only CLI dict (mapped to raw_config).
+        if not aux:
+            aux = {}
+        if not raw:
+            raise ValueError(
+                "Non-empty raw_config is required (Step 02 output: cell_info filled, device/scene IDs validated, etc.); "
+                "see references/automation-create.md."
+            )
+
+        body: Dict[str, Any] = {
+            "raw_config": raw if raw else None,
+            "auxiliary_config": aux if aux else None,
+        }
+        return self._post("automation/create", data=body)
+
     # ─── Energy ───
     def post_energy_consumption_statistic(self, data: Optional[Dict[str, Any]] = None) -> Any:
         """
         POST device or position energy consumption query.
-
-        Route is chosen only from ``device_ids``:
-
-        - Non-empty ``device_ids`` list → ``device/energy/consumption/query``.
-        - Otherwise (including empty or missing ``device_ids``) → ``position/energy/consumption/query``.
         """
         self._require_position_id()
         body: Dict[str, Any] = data if isinstance(data, dict) else {}
@@ -425,17 +421,30 @@ def _cli_invoke(api: AqaraOpenAPI, method_name: str, payload: Dict[str, Any]) ->
 def main() -> None:
     configure_stdio_utf8()
     if len(sys.argv) < 2:
-        print("Usage: aqara_open_api.py <tool> [json_body]", file=sys.stderr)
+        print(
+            "Usage: aqara_open_api.py <tool> [json_body]\n"
+            "  Local helper (no API key): normalize_json_values — pass JSON object/array to normalize.",
+            file=sys.stderr,
+        )
         sys.exit(1)
+
+    tool_name = sys.argv[1]
+    args = sys.argv[2:]
+
+    if tool_name == "normalize_json_values":
+        try:
+            raw_payload: Any = json.loads(args[0]) if args else {}
+        except json.JSONDecodeError as e:
+            print(f"Invalid JSON: {e}", file=sys.stderr)
+            sys.exit(1)
+        _print_json(normalize_json_values(raw_payload))
+        return
 
     try:
         api = AqaraOpenAPI()
     except MissingAqaraApiKeyError as e:
         print(str(e), file=sys.stderr)
         sys.exit(1)
-
-    tool_name = sys.argv[1]
-    args = sys.argv[2:]
 
     try:
         raw_payload: Any = json.loads(args[0]) if args else {}

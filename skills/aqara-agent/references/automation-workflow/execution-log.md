@@ -10,4 +10,4 @@ python3 scripts/aqara_open_api.py post_automation_execution_log '{"automation_id
 
 - Empty records -> **Must** say so. **Forbidden** fabricate fields.
 
-**Related:** [List](list.md), [`automation-manage.md`](../automation-manage.md).
+**Related:** [List](list.md), [Toggle](toggle.md), [`automation-manage.md`](../automation-manage.md).

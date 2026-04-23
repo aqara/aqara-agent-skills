@@ -4,6 +4,10 @@ This file is the **entry point** for all scene-related agent behavior. **Normati
 
 **Pattern:** **Scene recommendation** (execute now) and **scene creation** (persisted card) both use **`device_status_control`**: **`post_device_status`**, then **`post_device_control`** (recommend path) or **`scene_data`** + **`post_create_scene`** (create path). See [Scene recommend workflow](scene-workflow/recommend.md#device-status-control-device_status_control).
 
+## Not immediate catalog execute (routing)
+
+**Scheduled scene control** and **delayed scene control** (time or clock condition + run an **existing catalog scene**, and **not** immediate **`post_execute_scene`**): whenever NL / intent falls here, semantically this is equivalent to **creating an automation** (action is scene execution; see **`automation-create-workflow`** action intent **3** and [`automation-create.md`](automation-create.md)), **Must** **go straight to** [`automation-create.md`](automation-create.md), **Forbidden** to replace the primary path with the immediate flow in [`scene-workflow/execute.md`](scene-workflow/execute.md) or host timers that only defer `post_execute_scene`. Wording is not limited to fixed example sentences; classify by whether intent falls in the above category.
+
 ## Scene name matching (shared)
 
 **Shared business rules** for resolving a user's **scene name** to catalog entries from the latest **`get_home_scenes`** (within the resolved **room / whole-home** scope). **Must** apply the same rules when matching for **scene execute (catalog)**, **execution log** (`scene_ids` resolution), or any other flow that maps NL to catalog scene names.
@@ -36,6 +40,7 @@ This file is the **entry point** for all scene-related agent behavior. **Normati
 
 ## Intents (routing)
 
+- **Scheduled / delayed scene control** (time or clock + run catalog scene, not immediate) → [`automation-create.md`](automation-create.md) (`post_create_automation`); **Must not** prefer the immediate [execute.md](scene-workflow/execute.md) path. Routing overview: [`automation-manage.md`](automation-manage.md).
 - List/discover scenes - [list.md#catalog-list](scene-workflow/list.md#catalog-list).
 - Scenes involving a device - [list.md#scenes-by-device](scene-workflow/list.md#scenes-by-device).
 - Run catalog scene (NL or explicit) - [execute.md](scene-workflow/execute.md).
@@ -72,7 +77,7 @@ Applies whenever the business path is **scene recommendation** ([recommend.md](s
 
 **Forbidden** (on this path only): Replies that **mimic a catalog scene card** or a generic **`post_execute_scene`** success template, for example:
 
-- A headline-only “scene executed successfully” / “晚安场景已执行成功” **without** per-device detail.
+- A headline-only "scene executed successfully" / "good night scene ran successfully" **without** per-device detail.
 - A **“scene details”** block that only states a **user- or model-invented scene title**, **location**, and an echoed generic API line such as **“Scene run successfully”** (or equivalent) **as the sole outcome**.
 - Vague closings like “lights should already be in sleep / reading mode” **when** the user-visible text **does not list which endpoints were controlled and how** (must follow the rule below instead).
 

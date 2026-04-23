@@ -69,11 +69,11 @@ Except for **room / position** and **scene name**, which **May** require user qu
    **Slot semantics (normative CSV):** **Must** choose **`attribute`**, **`action`**, and **`value`** per device type using **[`assets/device_control_action_table.csv`](../../assets/device_control_action_table.csv)** (`device_type`, `attribute`, comma-separated **`action`** list, `value_range`). Match each planned device to its **device type** (from status / catalog), then emit slots only from rows that apply to that type. **Forbidden** invent attribute-action pairs or values outside the CSV (and live `post_device_status` / API constraints).
 
    - **`attribute` / `action`:** Use CSV columns **`attribute`** and allowed **`action`** tokens for that row (e.g. Light `brightness`: `up`, `query`, `down`, `set`). Where the CSV lists multiple rows for the same attribute (e.g. `wind_speed`), pick the row whose actions fit the plan.
-   - **`value`:** **Must** stay within **`value_range`** for that row (numeric bands, enums like `low_speed` / `max` / `empty`, or documented aliases). Lighting-effect-style names **May** apply when the plan uses **`lighting_effect`** and the wrapper maps them to **`set`** (see script behavior); otherwise follow CSV enums.
-   - If unspecified in the plan - default **`action`** to **`set`** where CSV allows `set` (CLI also defaults missing `action` to `set` and forces **`lighting_effect`** rows to **`set`**).
+   - **`value`:** **Must** stay within **`value_range`** for that row (numeric bands, enums like `low_speed` / `max` / `empty`, or documented aliases). Lighting-effect-style names **May** apply when the plan uses **`lighting_effect`**; **`action`** for that attribute **Must** be **`set`** (see [JSON body](#json-body-post_create_scene)).
+   - If **`action`** is omitted in the plan, **Must** use **`set`** wherever the CSV allows **`set`** for that attribute (see same section).
 
    **Special rules (still apply on top of CSV):**
-   **`color`** - **`value`** **Must** be **English lowercase** per CSV palette (e.g. `red`). The wrapper lowercases string `value` when `attribute` is `color`; **Must** still map localized color words to English tokens in the plan.
+   **`color`** - **`value`** **Must** be **English lowercase** per CSV palette (e.g. `red`). **Must** normalize string `value` to trimmed lowercase before building the CLI JSON; **Must** map localized color words to English tokens in the plan.
 
 6. **`post_create_scene`** - **Must** call with **`scene_name`**, **`position_id`**, **`scene_data`**. On success, the response includes **`scene_id`** for **scene card** presentation - **May** surface that id to the user when the product shows a scene card (**exception** to generic "no raw ids" guidance for this success path only, if your client requires it).
 
@@ -103,6 +103,33 @@ Except for **room / position** and **scene name**, which **May** require user qu
    ```
 
 7. **Reply** - **Must** summarize from real API output only; **Forbidden** fabricate success. On auth errors - **`aqara-account-manage.md`** then retry.
+
+## JSON body (`post_create_scene`)
+
+`aqara_open_api.py` **`post_create_scene`** sends the JSON body **unchanged** to **`scene/create`**. **Must** shape the payload correctly before the call; invalid bodies surface as API errors.
+
+### Top-level
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `scene_name` | string | **Required**, non-empty after trim. |
+| `position_id` | string | **Required**, non-empty after trim; **one** room id from **`get_rooms`** (see [Location and room choice](#location-and-room-choice-mandatory-before-planning)). |
+| `scene_data` | array | **Required**, non-empty. Each element is one **block** (object). |
+
+### Each `scene_data` block
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `device_ids` | array of strings | **Required**, non-empty; every element a non-empty endpoint id string (trim whitespace). |
+| `slots` | array | **Required**; each element a **slot** object. Prefer non-empty when there is a real plan (empty only if the platform documents it). |
+
+### Each slot object
+
+| Field | Type | Rule |
+| --- | --- | --- |
+| `attribute` | string | Per **[`device_control_action_table.csv`](../../assets/device_control_action_table.csv)** for the device type. |
+| `action` | string | Per CSV allowed actions for that row. If omitted when assembling the payload: use **`set`** for `attribute` **`lighting_effect`**; otherwise use **`set`** only where the CSV allows **`set`** for that attribute. |
+| `value` | string / number / etc. | Per CSV **`value_range`**. For `attribute` **`color`** with a string `value`, **Must** be trimmed **English lowercase** (e.g. `red`). |
 
 ## Errors
 

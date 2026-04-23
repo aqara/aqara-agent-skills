@@ -4,6 +4,7 @@
   "fallback_policy": "When the user language is unknown, ambiguous, or not in supported_locales, always use the en strings. fallback_locale must stay en (same as default_locale).",
   "login_url_policy": "CRITICAL for all models: The only allowed sign-in URL is the exact string in official_open_login_url below. You MUST read this JSON in the current session and copy official_open_login_url verbatim (character-for-character) into the user reply. FORBIDDEN: inventing, recalling from training, or assembling any other URL — including paths on open-test.aqara.cn or open.aqara.com with /sns-auth, client_id, redirect_uri, state=, or any OAuth-style query string — unless it is byte-identical to official_open_login_url. Wrong fabricated links break login; FORBIDDEN substituting “Open Platform” or “Aqara OAuth” URLs you believe are correct.",
   "official_open_login_url": "https://agent.aqara.com/login",
+  "official_open_logout_url": "https://agent.aqara.com/logout",
   "credential_note": "The pasted value is stored only under the JSON key aqara_api_key in user_account.json. There is no access_token field in that file for this skill.",
   "supported_locales": ["en", "zh", "ja", "ko", "de", "es", "ru", "pt", "ar"],
   "locales": {

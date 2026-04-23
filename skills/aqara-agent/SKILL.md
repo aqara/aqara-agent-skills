@@ -1,13 +1,11 @@
 ---
 name: aqara-agent
-description: "aqara-agent is an official Aqara Home AI Agent skill. It supports natural-language home and space management, device inquiry, device control, device logs, scene management (query, execute, create, snapshot, and logs), automation management (query, detail, toggle, and logs), and energy / electricity-cost statistics (by device, room, or home). Examples: \"How many lights are at home?\", \"Switch to my other home.\", \"Turn off the living room AC.\", \"What are the temperature and humidity in the bedroom?\", \"Show device logs for this device.\", \"Run the Movie scene.\", \"Recommend a bedtime setup for the bedroom.\", \"Create a good-night scene in the bedroom.\", \"Capture a scene snapshot of how things are now.\", \"Which scenes use the kitchen lights?\", \"What automations do I have?\", \"Turn off the morning routine automation.\", \"What triggers the Leave Home automation?\", \"What was last month's electricity bill at home?\", \"How much power did the bedroom use this week?\", \"Check automation execution in the bedroom for the last three days.\", \"Show scene run history for the Movie scene.\""
+description: "aqara-agent is an official Aqara Home AI Agent skill. It supports natural-language home and space management, device inquiry, device control, device configuration (firmware/OTA upgrade only - not supported: rename devices, move devices between rooms or positions, or other device record edits outside firmware), device logs, scene management (query, execute, create, snapshot, and logs), automation management (create, query, detail, toggle, and logs), and energy / electricity-cost statistics (by device, room, or home). Examples: \"How many lights are at home?\", \"Switch to my other home.\", \"Turn off the living room AC.\", \"What are the temperature and humidity in the bedroom?\", \"Upgrade the bedroom camera firmware.\", \"Upgrade firmware for the hub.\", \"Show device logs for this device.\", \"Run the Movie scene.\", \"Recommend a bedtime setup for the bedroom.\", \"Create a good-night scene in the bedroom.\", \"Capture a scene snapshot of how things are now.\", \"Which scenes use the kitchen lights?\", \"When it is sunset in Haidian District, Beijing, turn off the security alarm.\", \"Create an automation to turn off the bedroom lights every day at 10:30pm.\", \"Five minutes after the living room motion sensor detects someone, turn on the hallway lights.\", \"At 7am on weekdays, run the Good Morning scene.\", \"If outdoor temperature drops below 5 degrees C, send me a notification.\", \"What automations do I have?\", \"Turn off the morning routine automation.\", \"What triggers the Leave Home automation?\", \"What was last month's electricity bill at home?\", \"How much power did the bedroom use this week?\", \"Check automation execution in the bedroom for the last three days.\", \"Show scene run history for the Movie scene.\""
 ---
 
 # Aqara Smart Home AI Agent Skill
 
 ## Basics
-
-- **Host (default):** `agent.aqara.com` - override with `AQARA_OPEN_HOST`. **Skill root:** `skills/aqara-agent/`. **Wrapper:** `scripts/aqara_open_api.py` (`AqaraOpenAPI` -> Open Platform REST, including energy).
 
 ### `aqara_open_api.py` CLI
 
@@ -15,24 +13,27 @@ description: "aqara-agent is an official Aqara Home AI Agent skill. It supports 
 - **Must:** first argument equals the **exact** public method name on `AqaraOpenAPI` (see bash examples in `references/*.md`). **Forbidden:** aliases or shortened names unless a reference documents an equivalent.
 - **Dispatch:** `get_*` -> no JSON body; `post_*` -> JSON object (optional, default `{}`).
 - **Energy:** `post_energy_consumption_statistic` - route from **`device_ids` only** (non-empty -> device API; else position). Fields and NL mapping: `references/energy-statistic.md`.
-- **Methods (ground list):** `get_homes`, `get_rooms`, `get_home_devices`, `get_home_scenes`, `get_home_automations`, `post_current_outdoor_weather`, `post_device_base_info`, `post_device_status`, `post_device_control`, `post_device_log`, `post_execute_scene`, `post_scene_detail_query`, `post_create_scene`, `post_scene_snapshot`, `post_scene_execution_log`, `post_automation_detail_query`, `post_automation_execution_log`, `post_automation_switch`, `post_energy_consumption_statistic`. **Forbidden** call names not present on `AqaraOpenAPI` unless a reference adds them.
-- **Optional env:** `AQARA_OPEN_HTTP_TIMEOUT` (default 60), `AQARA_OPEN_API_URL`.
+- **Methods (ground list):** `get_homes`, `get_rooms`, `get_home_devices`, `get_home_scenes`, `get_home_automations`, `post_current_outdoor_weather`, `post_device_base_info`, `post_device_status`, `post_device_control`, `post_device_firmware_query`, `post_device_firmware_upgrade`, `post_device_log`, `post_execute_scene`, `post_scene_detail_query`, `post_create_scene`, `post_scene_snapshot`, `post_scene_execution_log`, `post_device_related_automation_query`, `post_automation_execution_log`, `post_automation_switch`, `post_create_automation`, `post_energy_consumption_statistic`. **Forbidden** call names not present on `AqaraOpenAPI` unless a reference adds them.
+- **`post_create_automation` and `raw_config` (non-negotiable):** **Every** call **Must** send **non-empty** `raw_config` in the HTTP body ([automation-create.md](references/automation-create.md#post-create-raw-config-always)). **Forbidden** to send only `auxiliary_config` or only root-level supplemental `conditions` / `actions` without **non-empty** `raw_config`.
+- **`post_create_automation` first round vs follow-up:** **First** call: **non-empty** `raw_config` only; **`auxiliary_config` Must be empty** (omit the argument or pass `{}`). If the response needs config-list matching, use **`LLMConfigReference`** as the **only** source for Step 03 -> **`auxiliary_config`** ([step-03-parse-config-prompt.md](references/automation-create-workflow/step-03-parse-config-prompt.md)). **Second and later** calls: **Must** resend the same **non-empty** `raw_config` **and** attach **`auxiliary_config`** ([Step 3 supplement](references/automation-create.md#step-3b-auxiliary-config)). `scripts/aqara_open_api.py` **shallow-merges** `raw_config` and `auxiliary_config` into one JSON when both are passed.
+- **Optional env:** `AQARA_OPEN_HTTP_TIMEOUT` (default 60), `AQARA_OPEN_API_URL` (overrides disk). **Optional disk:** `assets/user_account.json` keys `aqara_open_api_url` or `open_api_url` (full base, no trailing slash required) when env is unset — requests use `{base}/{path}` (e.g. `homes/query`).
 
 ## Skill Package Layout
 
-Relative to `skills/aqara-agent/`. **Normative:** this file + `references/*.md` + `references/scene-workflow/*.md` where scene applies + `references/automation-workflow/*.md` where automation applies. `README.md` is a human index only.
+Relative to the **skill root** directory (Cursor project: **`.cursor/skills/aqara-agent/`**; other layouts: **`skills/aqara-agent/`**). **Normative:** this file + `references/*.md` + `references/scene-workflow/*.md` where scene applies + `references/automation-workflow/*.md` where automation applies (**includes** `recommend.md` for **recommend-style automation -> example NL -> create**) + `references/automation-create-workflow/*` for **`post_create_automation`** (see `references/automation-create.md`). Optional **`README.md`** (human index only) when present in a pack; **Forbidden** treat it as overriding `SKILL.md`.
 
 | Path | Purpose |
 |------|---------|
 | `SKILL.md` | This document. |
-| `README.md` | Human index; **Forbidden** treat as overriding `SKILL.md`. |
+| `README.md` | Optional human index in some packs; **Forbidden** treat as overriding `SKILL.md`. |
 | `assets/login_reply_prompt.json` | Locales, `official_open_login_url`, `login_url_policy`. |
 | `assets/user_account.example.json` | Template shape. |
 | `assets/user_account.json` | Live session (sensitive). |
 | `assets/device_control_action_table.csv` | Normative `attribute` / `action` / `value` mapping for control and scene slots (`devices-control.md`, scene workflows). |
-| `references/*.md` | Per-domain procedures (account, home-space, devices, scenes index, automations, energy, weather). |
+| `references/*.md` | Per-domain procedures (account, home-space, devices inquiry/control/config, scenes index, automations, energy, weather). |
 | `references/scene-workflow/*.md` | Scene sub-workflows; enter via `references/scene-manage.md`. **Files (scan):** `list.md` (catalog `#catalog-list` + `#scenes-by-device`), `execute.md`, `recommend.md`, `create.md`, `snapshot.md`, `execution-log.md`, `failure-response.md`, `appendices.md`. |
-| `references/automation-workflow/*.md` | Automation sub-workflows; enter via `references/automation-manage.md`. **Files (scan):** `list.md` (catalog `#catalog-list` + by-device `#by-device`), `toggle.md`, `execution-log.md`, `failure-response.md`. |
+| `references/automation-workflow/*.md` | Automation sub-workflows; enter via `references/automation-manage.md`. **Files (scan):** `list.md` (catalog `#catalog-list` + by-device `#by-device`), `toggle.md`, `execution-log.md`, `failure-response.md`, **`recommend.md`** (recommend-style automation -> example NL -> create; **Forbidden** `post_automation_recommend_query`). |
+| `references/automation-create-workflow/` | NL -> `raw_config` -> create; **Files (scan):** `manifest.json`, `step-01-conditions-actions-extract.md`, `step-02-cell-info-fill.md`, `step-03-parse-config-prompt.md`. |
 | `scripts/aqara_open_api.py` | CLI + HTTP client. |
 | `scripts/save_user_account.py` | Writes `aqara_api_key`. |
 | `scripts/runtime_utils.py` | Shared helpers. |
@@ -56,11 +57,12 @@ Execute in order:
 
 ### 1. Environment
 ```bash
-export AQARA_OPEN_HOST=agent.aqara.com   # test; omit or set prod host as required
+export AQARA_OPEN_HOST=agent.aqara.com
 ```
 
 ```bash
-cd skills/aqara-agent
+cd .cursor/skills/aqara-agent   # Cursor project layout (repo root)
+# cd skills/aqara-agent         # upstream pack layout
 pip install -r scripts/requirements.txt
 ```
 
@@ -84,22 +86,25 @@ pip install -r scripts/requirements.txt
 
 ### 3. Home Management
 
-- **Must** after saving `aqara_api_key` run `references/home-space-manage.md` step **0** immediately (fetch homes; one home -> write; many -> user picks). **Forbidden** reply only "send home name" without running fetch.
+- **Must** after saving `aqara_api_key` run `references/home-space-manage.md` step **0** immediately (fetch homes; one home -> write; many -> **show the complete home list** + remind user to **choose one**, then user picks). **Forbidden** reply only "send home name" without running fetch or without listing all homes when many.
 - **Must** run `save_user_account.py` and `aqara_open_api.py get_homes` as **two separate** invocations. **Forbidden** `&&` on one shell line (`aqara-account-manage.md` step 2, `home-space-manage.md` step 0).
-- **Switch home:** **Must** re-fetch homes and let the user choose (`home-space-manage.md`). **Forbidden** default to re-login. **Must** use `aqara-account-manage.md` login only if the user demands re-login/token rotation or the API signals expired/unauthorized.
+- **Switch home:** **Must** re-fetch homes, show the **complete** list, remind user to **pick one**, then persist (`home-space-manage.md`). **Forbidden** default to re-login. **Must** use `aqara-account-manage.md` login only if the user demands re-login/token rotation or the API signals expired/unauthorized.
 
 ### 4. Intent
 
-Categories: space, device query, control, scene, automation, energy. **Multiple intents:** **Must** query before control, in utterance order.
+Categories: space, device query, device control, device configuration, scene, automation, energy. **Multiple intents:** **Must** query before control or configuration, in utterance order.
 
 | Intent | `AqaraOpenAPI` methods (details in reference) | Reference |
 |--------|-----------------------------------------------|-----------|
 | Space | `get_homes`, `get_rooms` | `references/home-space-manage.md` |
-| Device query | `get_home_devices`, `post_device_status`; optional `post_device_base_info`, `post_device_log` | `references/devices-inquiry.md` |
-| Device control | `post_device_control` | `references/devices-control.md` + `assets/device_control_action_table.csv` |
-| Scene | `get_home_scenes`, `post_execute_scene`, `post_create_scene`, `post_scene_snapshot`, `post_scene_detail_query`, `post_scene_execution_log`; **`post_current_outdoor_weather`** - **only** [Scene recommend workflow](references/scene-workflow/recommend.md) step 7 **Leaving home** before control (`references/weather-forecast.md`); **Forbidden** elsewhere. Recommend path uses `post_device_control` unless **Create scene** applies. Catalog list + `post_scene_detail_query`: [list.md](references/scene-workflow/list.md) (`#catalog-list`, `#scenes-by-device`) | `references/scene-manage.md` (index); `references/weather-forecast.md`; other steps in `references/scene-workflow/*.md` |
-| Automation | `get_home_automations`, `post_automation_detail_query`, `post_automation_switch`, `post_automation_execution_log` | `references/automation-manage.md` (index); catalog + by-device: [list.md](references/automation-workflow/list.md); toggle: [toggle.md](references/automation-workflow/toggle.md); logs: [execution-log.md](references/automation-workflow/execution-log.md) |
+| Device query | `get_home_devices`, `post_device_status`; optional `post_device_base_info`, `post_device_log`, `post_device_firmware_query` (firmware version read) | `references/devices-inquiry.md` |
+| Device control | `post_device_control` - **immediate only** | `references/devices-control.md` + `assets/device_control_action_table.csv`. If NL is **scheduled / delayed device control** (not immediate), use **create automation** - see **Automation** row. |
+| Device configuration | `post_device_firmware_upgrade` - **Firmware/OTA only** - [Firmware-only scope](references/devices-config.md#firmware-only-scope) | `references/devices-config.md` |
+| Scene | `get_home_scenes`, `post_execute_scene`, `post_create_scene`, `post_scene_snapshot`, `post_scene_detail_query`, `post_scene_execution_log`; **`post_current_outdoor_weather`** - **only** [Scene recommend workflow](references/scene-workflow/recommend.md) step 7 **Leaving home** before control (`references/weather-forecast.md`); **Forbidden** elsewhere. Recommend path uses `post_device_control` unless **Create scene** applies. Catalog list + `post_scene_detail_query`: [list.md](references/scene-workflow/list.md) (`#catalog-list`, `#scenes-by-device`) | `references/scene-manage.md` (index); `references/weather-forecast.md`; other steps in `references/scene-workflow/*.md`. If NL is **scheduled / delayed catalog scene control** (not immediate catalog scene run), use **create automation** - see **Automation** row. |
+| Automation | `get_home_automations`, `post_device_related_automation_query`, `post_automation_switch`, `post_automation_execution_log`, **`post_create_automation`** | [automation-manage.md](references/automation-manage.md) (list / toggle / logs / **direct** create when the user already has an executable rule). **Recommend automation** (situational help, example sentences, then create): [automation-workflow/recommend.md](references/automation-workflow/recommend.md) only; **Forbidden** `post_automation_recommend_query`. **Create automation** (including NL classified as scheduled / delayed **device** control or scheduled / delayed **catalog scene** control, not immediate `post_device_control` / `post_execute_scene`): [automation-create.md](references/automation-create.md) + [automation-create-workflow/](references/automation-create-workflow/). Catalog and by-device: [list.md](references/automation-workflow/list.md); toggle and logs: same as first column. |
 | Energy | `post_energy_consumption_statistic` | `references/energy-statistic.md` |
+
+**Recommend automation (automation path):** If the user wants **situational ideas** and has **not** given one create-ready rule sentence, **Must** run [automation-workflow/recommend.md](references/automation-workflow/recommend.md) steps **0-5** (scope gate in **§0**: if neither position nor device, **`get_rooms`** + position list only — **no** examples same turn; else **`get_rooms`**, scoped **`get_home_devices`**, **`get_home_scenes`**, mandatory **`post_device_status`**, optional **`post_device_base_info`**, optional **`get_home_automations`**). **Forbidden** `post_automation_recommend_query` and platform "template name" strings as data. **User-facing reply:** success vs error format and id redaction -> that doc **§5** (§5.2: localized lead-in line matching the user's input language + numbered lines `1.` through `10.` (digit + ASCII period only) on success; on error, detail only, **no** home/device/position/scene/automation **ids**). After the user **selects or rewrites** one example line, **Must** continue with [automation-create.md](references/automation-create.md) and **`post_create_automation`** (non-empty `raw_config` on every call; `LLMConfigReference` handling per that doc and step-03).
 
 ### 5. Route and Summarize
 
@@ -128,9 +133,10 @@ REST shape (skeleton):
 | Home/room not found | **Must** state no hit; **Must** direct next step via `references/` (re-fetch or verify home). |
 | Multiple device matches | **Must** list matches; **Must** one disambiguation question (room or full name). |
 | Not signed in / empty `aqara_api_key` | **Must** login + save per `references/aqara-account-manage.md`, then homes. `MissingAqaraApiKeyError` -> same. |
-| No home selected | **Must** `references/home-space-manage.md`. No `home_id` -> `homes/query`; one home -> auto-write; many -> `home_selection_required`. |
+| No home selected | **Must** `references/home-space-manage.md`. No `home_id` -> `homes/query`; one home -> auto-write; many -> show **full** home list + **choose one** prompt, then `home_selection_required`. |
 | Bad token / auth | **Must** re-login / refresh (no secret leak). **Forbidden** treat **home switch** as auth failure unless home-list returns auth error. `unauthorized or insufficient permissions` (or equivalent) -> **Must** re-login per `references/aqara-account-manage.md`; **Forbidden** fake success. |
 | Control path blocked | **Must** say device found, command not sent. |
+| Firmware / configuration path blocked | **Must** say device found, upgrade or config action not sent; **Must** `references/devices-config.md`. |
 | Other | **Must** short summary + retry/`references/`; **Forbidden** internal URLs or full headers. |
 | Indeterminate | **Must** use `references/` + script output; confirmed bug -> **Must** file skill issue. |
 | Empty API data | **Forbidden** invent entities/readings; **Must** re-run or report failure (**Ground truth**). |
@@ -162,6 +168,6 @@ REST shape (skeleton):
 **Limited to documented workflows** (no app-only or undocumented features):
 
 - **Scenes** - **only** procedures in [scene-manage.md](references/scene-manage.md) and `references/scene-workflow/*.md` (e.g. `list.md`, `execute.md`, `recommend.md`, `create.md`, `snapshot.md`, `execution-log.md`, `failure-response.md`, `appendices.md`).
-- **Automations** - **only** procedures in [automation-manage.md](references/automation-manage.md) and `references/automation-workflow/*.md` (`list.md`, `toggle.md`, `execution-log.md`, `failure-response.md`).
+- **Automations** - **only** procedures in [automation-manage.md](references/automation-manage.md) and `references/automation-workflow/*.md` (`list.md`, `toggle.md`, `execution-log.md`, `failure-response.md`, `recommend.md` for recommend-then-create, plus [automation-create.md](references/automation-create.md) and `references/automation-create-workflow/*` for **`post_create_automation`**).
 
 **When** the user asks outside the above: **Must** say unsupported (or not yet); **Must** direct to **Aqara Home app** if the app covers it.

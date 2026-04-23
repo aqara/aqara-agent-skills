@@ -1,0 +1,24 @@
+{
+  "version": 1,
+  "doc": "Workflow references for references/automation-create.md. Paths relative to skill root (.cursor/skills/aqara-agent/ or skills/aqara-agent/).",
+  "steps": [
+    {
+      "workflow_anchor": "plan",
+      "id": "conditions_actions_nl_parse",
+      "file": "references/automation-create-workflow/step-01-conditions-actions-extract.md",
+      "description": "Step 1: NL split into conditions/actions with intent; cell_info empty {}. Must satisfy raw_config row contract: top-level name; each row sub_query, intent, sub_query_contain_position_name, position_id (see step-01-conditions-actions-extract.md#step01-raw-config-field-contract)."
+    },
+    {
+      "workflow_anchor": "cell_info",
+      "id": "conditions_actions_cell_info_fill",
+      "file": "references/automation-create-workflow/step-02-cell-info-fill.md",
+      "description": "Step 2: Fill cell_info by intent and pack into raw_config for first post_create_automation. Must retain Step 1 row contract (name, sub_query, intent, sub_query_contain_position_name, position_id) and only enrich cell_info (see step-02-cell-info-fill.md#raw-config-required-fields; non-empty raw_config per automation-create.md)."
+    },
+    {
+      "workflow_anchor": "auxiliary_config",
+      "id": "automation_auxiliary_config_match",
+      "file": "references/automation-create-workflow/step-03-parse-config-prompt.md",
+      "description": "Step 3b only: parse LLMConfigReference per step-03; output auxiliary_config; each post_create_automation must include non-empty raw_config (see automation-create.md) plus auxiliary_config on follow-up calls."
+    }
+  ]
+}
