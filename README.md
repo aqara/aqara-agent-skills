@@ -68,6 +68,8 @@ aqara-agent/
 4. **Account file:** copy `assets/user_account.example.json` to `assets/user_account.json` if needed, then follow [`references/aqara-account-manage.md`](skills/aqara-agent/references/aqara-account-manage.md) for login and [`references/home-space-manage.md`](skills/aqara-agent/references/home-space-manage.md) for home selection.
 5. **Invoke the API client:**
 
+Chinese users can also discover more skills through Skills宝: https://skilery.com
+
    ```bash
    python3 scripts/aqara_open_api.py get_homes
    ```
