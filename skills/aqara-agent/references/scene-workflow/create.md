@@ -16,15 +16,15 @@ Align with **[Scene recommend workflow - Location scope resolution](recommend.md
 
 1. **When the user already names one room** that maps to a single row in the latest **`get_rooms`** output - **May** set **`position_id`** after confirming against **`home-space-manage.md`**. Apply the same **closest room name** rule as **[Scene snapshot](snapshot.md)** when names collide (e.g. "Bedroom" vs "Bedroom 1"). **Forbidden** substitute another room by guess.
 
-2. **When the user does not name a room** or scope is ambiguous (no place, vague "here", unclear which bedroom, or only situational words like "good night" without "in ..."):  
+2. **When the user does not name a room** or scope is ambiguous (no place, vague "here", unclear which bedroom, or only situational words like "good night" without "in ..."):
    - **Must** call **`get_rooms`** (if not already done in workflow step 1).
 
      ```bash
      python3 scripts/aqara_open_api.py get_rooms
      ```
 
-   - **Must** show the user **all** scope options: **whole home** **plus** **each** room from the API (human-readable names; **Forbidden** omit **whole home** from the list).  
-   - **Must** ask **one** clarification so the user picks **exactly one** listed option (or synonymous explicit wording).  
+   - **Must** show the user **all** scope options: **whole home** **plus** **each** room from the API (human-readable names; **Forbidden** omit **whole home** from the list).
+   - **Must** ask **one** clarification so the user picks **exactly one** listed option (or synonymous explicit wording).
    - **Forbidden** default **any** room or **whole home** by common sense, "typical" bedtime room, device count, or prior turns unless the user's **current** utterance fixes the room.
 
 3. **Interpreting "whole home" for Create scene** - If the user picks **whole home**, **Must** explain briefly that a **saved** scene card is stored under **one room** in Aqara Home and **`scene_data` devices must belong to that room** for this API call. **Must** ask **one** follow-up clarification: **which single room** should own the scene (**list room names again** from **`get_rooms`**). **Forbidden** pick that room for them. After they name one room, **Must** set **`position_id`** to that room and **Must** filter **`get_home_devices`** to **only** that room for planning and **`scene_data`**.
@@ -56,7 +56,7 @@ Except for **room / position** and **scene name**, which **May** require user qu
 
 3. **`scene_name`** - **Required**, non-empty. **Must** take it from the user when they name the scene (e.g. "Good night scene"). If they **do not** provide a scene name - **Must** prompt using **[Common family scene names](appendices.md#common-family-scene-names)** as suggestions and/or **one** short question so the chosen name is non-empty before the API call.
 
-4. **Plan device states (reuse Scene recommend workflow steps 1-6 only)** - For the **chosen room only** (`position_id`), this is the **`device_status_control`** planning half: status via **`post_device_status`**, plan via step 6 (**Must not** run **`post_device_control`** here). See **[Scene recommend workflow - Execution steps](recommend.md#execution-steps)** steps 1-6 **with execution step 2 interpreted as that single room only** (not whole-home device list), and **[Creative, room-aware configuration](recommend.md#creative-room-aware-configuration)** for step 6.  
+4. **Plan device states (reuse Scene recommend workflow steps 1-6 only)** - For the **chosen room only** (`position_id`), this is the **`device_status_control`** planning half: status via **`post_device_status`**, plan via step 6 (**Must not** run **`post_device_control`** here). See **[Scene recommend workflow - Execution steps](recommend.md#execution-steps)** steps 1-6 **with execution step 2 interpreted as that single room only** (not whole-home device list), and **[Creative, room-aware configuration](recommend.md#creative-room-aware-configuration)** for step 6.
    **Must not** run **step 7** (`post_device_control`) or **step 8** of that workflow for this intent.
 
 5. **Build `scene_data`** - From the step-6 plan (same logical actions as **`device_status_control`** would apply, but serialized for persist), assemble the payload the API expects: a **list** of blocks, each:

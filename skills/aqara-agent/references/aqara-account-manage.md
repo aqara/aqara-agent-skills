@@ -26,8 +26,8 @@
 
 ### Canonical Template
 
-1. `instruction_paragraph`  
-2. One-line `[official_open_login_url](official_open_login_url)` (or plain URL).  
+1. `instruction_paragraph`
+2. One-line `[official_open_login_url](official_open_login_url)` (or plain URL).
 **Forbidden** text after step 2.
 
 ## Step 2: After User Pastes `aqara_api_key`

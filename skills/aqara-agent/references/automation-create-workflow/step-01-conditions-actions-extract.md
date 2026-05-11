@@ -102,39 +102,39 @@ Normative expansion of **Gates** and split / intent policy. If anything here tig
 
 ### IV. Boundary rules (easy-to-confuse cases)
 
-1. **Spatial inquiry (3) vs device state (2) vs outdoor (7)**  
-   - "Bedroom temperature > 30 °C" (no AC model named) → **3**.  
-   - "Bedroom AC temperature = 30 °C" → **2** (tied to a **device category** in a space).  
-   - "Outdoor temperature > 30 °C" → **7** (outdoor).  
+1. **Spatial inquiry (3) vs device state (2) vs outdoor (7)**
+   - "Bedroom temperature > 30 °C" (no AC model named) → **3**.
+   - "Bedroom AC temperature = 30 °C" → **2** (tied to a **device category** in a space).
+   - "Outdoor temperature > 30 °C" → **7** (outdoor).
    - **Bare** temperature compare **with no room** (e.g. "temperature > 28 °C", "temperature drops to 22 °C") → **2** (device-style metric), **not** **3**, unless the utterance is a defined **whole-home indoor aggregate** (then **3** per aggregate table rows).
 
-2. **Sunrise / sunset**  
-   - **With** geography ("Shanghai sunrise") → **7**.  
+2. **Sunrise / sunset**
+   - **With** geography ("Shanghai sunrise") → **7**.
    - **Without** geography ("at sunrise") → **4** (schedule) or **5** (delay) by phrasing.
 
-3. **Spatial control (2) vs device control (1)**  
-   - "**All** bedroom lights brighter" → **2** (whole-scope + lights + no type prefix beyond "lights").  
-   - "**All** bedroom **spot**lights brighter" → **1** ("spotlights" is a **type prefix**).  
-   - For **2**, the `sub_query` **must** include an explicit whole-scope token (e.g. **all / every / whole home on|off / turn all on / turn all off**). Otherwise → **1**.  
-   - Examples: "Bedroom light color temperature 2000 K" → **1**; "**All** bedroom lights color temperature 2000 K" → **2**.  
-   - "Turn off home AC" (no whole-scope word) → **1**; "**Turn all** home AC off" → **2**.  
+3. **Spatial control (2) vs device control (1)**
+   - "**All** bedroom lights brighter" → **2** (whole-scope + lights + no type prefix beyond "lights").
+   - "**All** bedroom **spot**lights brighter" → **1** ("spotlights" is a **type prefix**).
+   - For **2**, the `sub_query` **must** include an explicit whole-scope token (e.g. **all / every / whole home on|off / turn all on / turn all off**). Otherwise → **1**.
+   - Examples: "Bedroom light color temperature 2000 K" → **1**; "**All** bedroom lights color temperature 2000 K" → **2**.
+   - "Turn off home AC" (no whole-scope word) → **1**; "**Turn all** home AC off" → **2**.
    - "Turn off home lights and AC" (no per-category "all") → split / literal → typically **1** rows, **not** **2**.
 
-4. **Spatial inquiry (3) vs device state (2) — stricter object list**  
-   - Intent **3** supports **only** aggregates on **lights**, **AC**, or **indoor temp/humidity**. Any other state → **2**.  
-   - Intent **3** **requires** whole-scope language (**any / all / every** …). Otherwise → **2**.  
-   - **Generic occupancy** vs **light aggregate:** e.g. "Whole home detects **nobody**" → **2**; "**All** whole-home lights are off" → **3** (light aggregate).  
-   - Examples: "Any living room light on" → **3**; "Living room light on" (no any/all) → **2**.  
-   - "**All** bedroom AC off" → **3**; "Bedroom AC off" (no all) → **2**.  
+4. **Spatial inquiry (3) vs device state (2) — stricter object list**
+   - Intent **3** supports **only** aggregates on **lights**, **AC**, or **indoor temp/humidity**. Any other state → **2**.
+   - Intent **3** **requires** whole-scope language (**any / all / every** …). Otherwise → **2**.
+   - **Generic occupancy** vs **light aggregate:** e.g. "Whole home detects **nobody**" → **2**; "**All** whole-home lights are off" → **3** (light aggregate).
+   - Examples: "Any living room light on" → **3**; "Living room light on" (no any/all) → **2**.
+   - "**All** bedroom AC off" → **3**; "Bedroom AC off" (no all) → **2**.
    - "Bedroom TVOC > 2" → **2**; "Whole-home indoor temperature drops to 22 °C" as a **whole-home** aggregate → **3** (see edge-case table).
 
-5. **Schedule / delay (4 / 5) vs device inquiry (2)**  
-   - "No person detected for 5 minutes" / "Someone detected **and** no motion for the previous hour" → **2** (sensor semantics), **not** **5**.  
+5. **Schedule / delay (4 / 5) vs device inquiry (2)**
+   - "No person detected for 5 minutes" / "Someone detected **and** no motion for the previous hour" → **2** (sensor semantics), **not** **5**.
    - "In 5 minutes" (pure relative wait) → **5**.
 
-6. **Spatial control (2) vs device control (1) vs scene execute (3)**  
-   - Named device or **fixture-level** scene wording ("set **downlight** to Cozy scene") → **1**.  
-   - Space + whole-scope + lights/AC/curtains **without** type narrowing → **2** (e.g. "**All** bedroom lights to Cozy scene").  
+6. **Spatial control (2) vs device control (1) vs scene execute (3)**
+   - Named device or **fixture-level** scene wording ("set **downlight** to Cozy scene") → **1**.
+   - Space + whole-scope + lights/AC/curtains **without** type narrowing → **2** (e.g. "**All** bedroom lights to Cozy scene").
    - Only "run **scene X**" → **3**.
 
 ---

@@ -7,9 +7,9 @@
 
 ## Execution Order
 
-1. **Filters (priority):**  
-   - **1  -  `device_ids`:** user names device(s) -> **Must** resolve endpoint ids via `get_home_devices` (`devices-inquiry.md`), then set `device_ids`.  
-   - **2  -  `positions` / `position_ids`:** room(s) only -> **Must** resolve room ids; use field names your tenant expects.  
+1. **Filters (priority):**
+   - **`device_ids`:** If the user names device(s), **Must** resolve endpoint ids via `get_home_devices` (`devices-inquiry.md`), then set `device_ids`.
+   - **`positions` / `position_ids`:** If the scope is room(s) only, **Must** resolve room ids; use field names your tenant expects.
    - **Neither:** **Must** pass empty `device_ids` / `positions` (or `position_ids`) as appropriate.
 2. **Must** build JSON per tables below.
 3. **Must** call `post_energy_consumption_statistic`. **Route:** non-empty `device_ids` -> **`device/energy/consumption/query`**; otherwise -> **`position/energy/consumption/query`**. **Forbidden** fabricate numbers; **Must** summarize only API response.
@@ -26,7 +26,7 @@ Same base URL / headers as other skill calls (`AQARA_OPEN_API_URL`, `Authorizati
 python3 scripts/aqara_open_api.py post_energy_consumption_statistic '<json_body>'
 ```
 
-**Example  -  single day, whole home, no room/device filter** (adjust fields per live Open Platform):
+**Example: single day, whole home, no room or device filter** (adjust fields per live Open Platform):
 
 ```bash
 python3 scripts/aqara_open_api.py post_energy_consumption_statistic '{
@@ -49,7 +49,7 @@ python3 scripts/aqara_open_api.py post_energy_consumption_statistic '{
 | `data_type` | Yes | `"1"` consumption, `"2"` cost, `"3"` both. |
 | `time_range` | Yes | `[start, end]` `YYYY-MM-DD HH:mm`. |
 | `time_gradient` | Yes | One of **`30min`**, **`1hour`**, **`1day`**, **`1week`**, **`1month`**. |
-| `data_aggregation_mode` | Yes | **`total`**  -  one summary; **`detail`**  -  breakdown for by-device / by-room / compare / share / proportion. |
+| `data_aggregation_mode` | Yes | **`total`:** one summary; **`detail`:** breakdown for by-device, by-room, compare, share, or proportion. |
 | `positions` | No | Room ids; `[]` if unused. |
 | `device_ids` | No | Endpoint ids; `[]` if unused. **Routing:** non-empty -> device endpoint. |
 
@@ -88,7 +88,7 @@ If user wants comparison / ranking / share and the client **can** render graphic
 
 ## User-Facing Structure
 
-1. **Must** open with headline (metric, date range, scope  -  plain language). **Forbidden** paste internal JSON keys (`data_type`, `time_gradient`, `data_aggregation_mode`, raw position ids) unless user asked for technical detail.
+1. **Must** open with a headline (metric, date range, scope in plain language). **Forbidden** paste internal JSON keys (`data_type`, `time_gradient`, `data_aggregation_mode`, raw position ids) unless the user asked for technical detail.
 2. **Ranking table:** e.g. Rank \| Room \| Amount. Rows with data first. Rooms with no row in response: **Must** separate short line/bullet (e.g. "Other rooms (N): ..."); **Forbidden** cram all names into one malformed row.
 3. **Time series:** **Must** small markdown table per room or clear blocks; **Forbidden** long unreadable `a -> b -> c` chains.
 4. **Must** default rounded user-friendly numbers (e.g. 2 decimals for money); extra precision only if user needs reconciliation.

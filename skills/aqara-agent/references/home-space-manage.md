@@ -3,7 +3,7 @@
 ## When This Applies
 
 - After `aqara_api_key` save (`aqara-account-manage.md`): **Must** run **step 0** immediately, then **1** or **2**. **Forbidden** open with vague "send home name" only; **Must** use step **1** only when **multiple** homes — and **Must** show the **entire** fetched list plus a **choose one** prompt before waiting for the user's pick.
-- User says switch/change/another home: **Must** step **0** first. **Forbidden** default re-login (exceptions: user demands re-login or API auth failure  -  `aqara-account-manage.md`).
+- User says switch/change/another home: **Must** step **0** first. **Forbidden** default re-login (**exceptions:** user demands re-login or API auth failure; then follow `aqara-account-manage.md`).
 
 ### Step 0: Fetch Homes
 
@@ -41,5 +41,5 @@ python3 scripts/aqara_open_api.py get_rooms
 ## Switch Home vs Re-Login
 
 - Switch/another home + valid key: **Must** step **0** -> **1** or **2** here; **Forbidden** jump to login.
-- Re-login: **Must** only if user explicitly re-logins/rotates token or API returns invalid/unauthorized  -  then `aqara-account-manage.md`.
+- Re-login: **Must** only if the user explicitly re-logs in or rotates the token, or the API returns invalid or unauthorized; then follow `aqara-account-manage.md`.
 - **`unauthorized or insufficient permissions`** (or equivalent): **Must** treat as auth failure -> login flow in `aqara-account-manage.md` -> refresh homes here -> re-select `home_id` if needed -> continue original intent.

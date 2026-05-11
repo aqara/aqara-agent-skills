@@ -7,7 +7,15 @@
 - **`device_firmware_inquiry`:** read-only **firmware version / update availability** (what version, is there new firmware) — **Must** use [Firmware version query](#firmware-version-query-device_firmware_inquiry) with `post_device_firmware_query`, not `devices-config.md` until the user asks to **start** an upgrade.
 - Unclear -> start `devices_detail`, then clarify.
 
-**Not inquiry (upgrade):** if the user wants to **perform** a **firmware / OTA upgrade** (not only ask “what version”), **Must** route to `references/devices-config.md` after any needed list/locate.
+**Not inquiry (upgrade):** if the user wants to **perform** a **firmware / OTA upgrade** (not only ask "what version"), **Must** route to `references/devices-config.md` after any needed list/locate.
+
+<a id="user-facing-device-wording"></a>
+
+## User-facing wording (device lists and counts)
+
+- **`get_home_devices`** returns **one row per platform-controllable id** (CLI table column **endpoint id**; raw API field **`endpoint_id`**). **Must** speak to the user in terms of a **device** (or **one controllable channel** / the row's display name), not an **"endpoint."** **Forbidden:** the word **"endpoint"** in user-facing copy.
+- **Semantics for replies:** the platform id (**`endpoint_id`**, sent in JSON as **`device_ids`** elements) is what the user should be led to treat as **one device** in natural language, i.e. **one separately identifiable and controllable unit**. A **single physical product** may appear as **multiple rows** (e.g. primary vs. secondary light; channel 1 / 2 / N on a wall switch or panel; lamp groups vs. members when both are listed). **Default:** counts and bullet lists in this flow use **row count** as the user's **device** count unless the user asks for **physical-unit** aggregation and the API allows reliable grouping (if not, **Must** briefly state the **per-channel / multi-circuit control** basis).
+- **Internal only:** **`device_ids`** and CLI placeholders **`<endpoint_id>`** use platform strings from the listing; **Forbidden** echo raw ids in user text (`SKILL.md` Notes).
 
 ## Workflow
 
@@ -21,13 +29,13 @@ python3 scripts/aqara_open_api.py get_home_devices
 
    Fuzzy-match room, name, **`device_type`** (table below) on `home_devices`.
 
-2. **`query_state`:** call `post_device_status` with a JSON body. Use **one or more** optional filters (all lists); **`device_ids` may be empty/omitted** when other filters narrow scope — avoids resolving every endpoint by hand when you want a **batch status** query.
+2. **`query_state`:** call `post_device_status` with a JSON body. Use **one or more** optional filters (all lists); **`device_ids` may be empty/omitted** when other filters narrow scope — avoids resolving every listed device's id by hand when you want a **batch status** query.
 
    **Body fields (Open Platform; align with live tenant if keys differ):**
 
    | Field | Required | Meaning |
    | --- | --- | --- |
-   | `device_ids` | No | Endpoint / device ids from `get_home_devices` (`endpoint_id` → id in list). Omit or `[]` when using room/type filters. |
+   | `device_ids` | No | Platform ids from `get_home_devices` (same values as **`endpoint_id`**; one id = one user-facing **device** row per [User-facing wording](#user-facing-device-wording)). Omit or `[]` when using room/type filters. |
    | `position_ids` | No | Room (position) ids — **Must** resolve from `get_rooms` / `home-space-manage.md`; **Forbidden** use unchecked natural-language room names as JSON ids. |
    | `device_types` | No | Type filters; values should match how `device_type` appears in `get_home_devices` (often PascalCase substring tokens), e.g. `Light`, `AirConditioner`, `Switch`, `Outlet`, `WindowCovering`, `ClotheDryingMachine`, `Camera`, `Speaker`, `BathroomHeater`, `TemperatureSensor`, `HumiditySensor`, `DoorSensor`, `MotionSensor`, `SweepingRobot`, `VideoDoorbell`, `PetFeeder`. |
 
@@ -49,7 +57,7 @@ python3 scripts/aqara_open_api.py post_device_status '{"device_types":["Light","
 python3 scripts/aqara_open_api.py post_device_status '{"position_ids":["<living_room_position_id>"],"device_types":["Light"]}'
 ```
 
-   **NL → resolution (agents; not raw JSON for end users):** map utterance to filters after layout is known — e.g. “are the living room lights on?” → `position_ids` = living room’s id from `get_rooms`, `device_types` = `["Light"]`; “status of all ACs” → `device_types` = `["AirConditioner"]`; “bedroom temperature?” → bedroom `position_ids` + `["TemperatureSensor"]` (or the tenant’s thermometer `device_type`). Combine filters only when the API accepts it for your tenant.
+   **NL → resolution (agents; not raw JSON for end users):** map utterance to filters after layout is known — e.g. "are the living room lights on?" → `position_ids` = living room's id from `get_rooms`, `device_types` = `["Light"]`; "status of all ACs" → `device_types` = `["AirConditioner"]`; "bedroom temperature?" → bedroom `position_ids` + `["TemperatureSensor"]` (or the tenant's thermometer `device_type`). Combine filters only when the API accepts it for your tenant.
 
    Else stop after list/detail for `devices_detail`.
 
@@ -61,7 +69,7 @@ python3 scripts/aqara_open_api.py post_device_status '{"position_ids":["<living_
 
    | Field | Required | Meaning |
    | --- | --- | --- |
-   | `device_ids` | No | Endpoint / device ids from `get_home_devices` (`endpoint_id` → id in list). Omit or `[]` when using room/type filters. |
+   | `device_ids` | No | Platform ids from `get_home_devices` (same values as **`endpoint_id`**; one id = one user-facing **device** row per [User-facing wording](#user-facing-device-wording)). Omit or `[]` when using room/type filters. |
    | `position_ids` | No | Room (position) ids — **Must** resolve from `get_rooms` / `home-space-manage.md`; **Forbidden** use unchecked natural-language room names as JSON ids. |
    | `device_types` | No | Type filters; values should match how `device_type` appears in `get_home_devices` (often PascalCase), e.g. `Light`, `AirConditioner`, `Camera`, `Switch` (same token set as status query). |
 
@@ -83,11 +91,11 @@ python3 scripts/aqara_open_api.py post_device_firmware_query '{"device_types":["
 python3 scripts/aqara_open_api.py post_device_firmware_query '{"position_ids":["<living_room_position_id>"],"device_types":["Light"]}'
 ```
 
-   **NL → resolution (agents; not raw JSON for end users):** e.g. “hub firmware version?” → resolve hub row(s) → `device_ids`; “any new firmware for bedroom lights?” → bedroom `position_ids` + `device_types` `["Light"]`; “OTA status for all cameras” → `device_types` `["Camera"]`. Combine lists only when the tenant API accepts it.
+   **NL → resolution (agents; not raw JSON for end users):** e.g. "hub firmware version?" → resolve hub row(s) → `device_ids`; "any new firmware for bedroom lights?" → bedroom `position_ids` + `device_types` `["Light"]`; "OTA status for all cameras" → `device_types` `["Camera"]`. Combine lists only when the tenant API accepts it.
 
    **Forbidden** treat this path as starting an upgrade — **Must** `devices-config.md` + `post_device_firmware_upgrade` only after the user clearly asks to upgrade.
 
-4. **Reply:** conclusion first; online/offline, room, key values (and firmware fields when applicable); sort room -> name; **Forbidden** raw device/position ids in user text.
+4. **Reply:** conclusion first; online/offline, room, key values (and firmware fields when applicable); sort room -> name; **Must** align nouns and counts with [User-facing wording](#user-facing-device-wording); **Forbidden** raw device/position ids in user text.
 
 ## Device Type -> Category (Substring on `device_type`)
 
@@ -109,7 +117,7 @@ Extend when new families appear. After resolve: **control** -> `devices-control.
 
 ## Optional: `post_device_base_info`, `post_device_log`
 
-Same `home_id` gate. **Must** resolve `device_ids` from `get_home_devices` unless tenant allows otherwise.
+Same `home_id` gate. **Must** resolve `device_ids` from `get_home_devices` unless tenant allows otherwise. Placeholder **`<endpoint_id>`** means the platform id from that listing (see [User-facing wording](#user-facing-device-wording)); **Must** not call this an "endpoint" in user-facing text.
 
 ```bash
 python3 scripts/aqara_open_api.py post_device_base_info '{"device_ids":["<endpoint_id>"]}'
@@ -136,7 +144,7 @@ Bodies follow live Open API.
 
 ## Output Templates
 
-- **List:** conclusion (counts/online); detail `name | type | room`.
+- **List:** conclusion (counts/online); detail **device** `name | type | room` — counts follow listing rows per [User-facing wording](#user-facing-device-wording).
 - **State:** conclusion (headline metrics); detail `name | metric | value | updated_at`.
 - **`device_firmware_inquiry`:** conclusion (version / update summary per device or scope); detail from API fields only; **Forbidden** invent rows not in `post_device_firmware_query` response.
 - **Failure:** short reason; **Forbidden** invent data.

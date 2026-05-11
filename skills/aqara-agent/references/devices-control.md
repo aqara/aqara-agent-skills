@@ -37,10 +37,10 @@ python3 scripts/aqara_open_api.py post_device_control '{"device_ids":["device_id
 
 ### Success
 
-| Case | Shape |
-| --- | --- |
-| On | `[Affirmative], [location] [device] [opened].` |
-| Off | `[Affirmative], [location] [device] [closed].` |
+| Case   | Shape                                                   |
+| ------ | ------------------------------------------------------- |
+| On     | `[Affirmative], [location] [device] [opened].`          |
+| Off    | `[Affirmative], [location] [device] [closed].`          |
 | Adjust | `[Affirmative], [location] [device] [set to] {target}.` |
 
 Localize. Multi-step: one sentence per step or summary + lines.

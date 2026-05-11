@@ -28,7 +28,7 @@ _DEFAULT_OPEN_TIMEOUT = float(os.environ.get("AQARA_OPEN_HTTP_TIMEOUT") or "60")
 
 
 def _default_open_host() -> str:
-    return (os.environ.get("AQARA_OPEN_HOST") or "open-cn.aqara.com").strip()
+    return (os.environ.get("AQARA_OPEN_HOST") or "agent.aqara.com").strip()
 
 
 def _default_api_base_url() -> str:
@@ -273,6 +273,23 @@ class AqaraOpenAPI:
         """POST ``device/firmware/upgrade``. See references/devices-config.md."""
         self._require_position_id()
         return self._post("device/firmware/upgrade", data=data or {})
+
+    # ─── lighting effect ───
+    def post_device_lighting_effect_query(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """lighting effect names per device."""
+        self._require_position_id()
+        return self._post("device/lighting/effect/query", data=data)
+
+    def post_lighting_effect_control(self, data: Optional[Dict[str, Any]] = None) -> Any:
+        """apply a named lighting effect."""
+        self._require_position_id()
+        return self._post("lighting/effect/control", data=data)
+
+    def get_home_lighting_effects_query(self) -> Any:
+        """ home-level lighting effects list """
+        self._require_position_id()
+        return self._get("home/lighting/effects/query")
+
 
     # ─── Scene management ───
     def get_home_scenes(self) -> Any:

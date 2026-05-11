@@ -29,10 +29,10 @@ Use this when the user asks to **run** a scene in natural language (e.g. "help m
    - If **not** specified (ambiguous scope) - **Must** list options and ask **one** clarification: **whole home** vs **which room** (use human-readable room names from step 2). **Forbidden** match or execute scenes until scope is resolved.
    - If already clear (e.g. "bedroom ...") - use that scope for matching.
 4. **Scene list and match** - **Must** call `get_home_scenes`, then match the user's requested scene **name + room scope** against the returned list per **[Scene name matching (shared)](../scene-manage.md#scene-name-matching-shared)**.
-5. **No catalog match** - If **no** scene qualifies after step 4 (no full match and no acceptable similarity hit, or user declines the fuzzy candidate):  
-   - **Must** tell the user clearly that **no matching saved scene was found** (phrase in the user's locale as needed) - **conclusion first**, **Forbidden** imply a catalog scene ran. **May** briefly offer **2-5** closest catalog names from `get_home_scenes` as hints only.  
-   - **Must** **immediately** continue into **[Scene recommend workflow](recommend.md)** for the **same** situational intent implied by the user's wording (e.g. good night, movie, reading) and the **same** location scope once step 3 is satisfied - **Forbidden** pause to ask whether they want AI actions; **Forbidden** require a second **affirmative** reply before starting recommendation.  
-   - If step 3 **location scope** is **still unresolved**, **Must** finish that **one** clarification **first**; **Must not** start **[Scene recommend workflow](recommend.md)** until scope is explicit, then apply the bullets above if the catalog still has no match.  
+5. **No catalog match** - If **no** scene qualifies after step 4 (no full match and no acceptable similarity hit, or user declines the fuzzy candidate):
+   - **Must** tell the user clearly that **no matching saved scene was found** (phrase in the user's locale as needed) - **conclusion first**, **Forbidden** imply a catalog scene ran. **May** briefly offer **2-5** closest catalog names from `get_home_scenes` as hints only.
+   - **Must** **immediately** continue into **[Scene recommend workflow](recommend.md)** for the **same** situational intent implied by the user's wording (e.g. good night, movie, reading) and the **same** location scope once step 3 is satisfied - **Forbidden** pause to ask whether they want AI actions; **Forbidden** require a second **affirmative** reply before starting recommendation.
+   - If step 3 **location scope** is **still unresolved**, **Must** finish that **one** clarification **first**; **Must not** start **[Scene recommend workflow](recommend.md)** until scope is explicit, then apply the bullets above if the catalog still has no match.
    - **Forbidden** `post_execute_scene` with guessed `scene_ids`; **Forbidden** fabricate success.
 
 ## Execute matched scene

@@ -12,19 +12,19 @@ Normative workflow order and user-facing rules: **[recommend.md](scene-workflow/
 
 ## Request parameters
 
-- **`weather_type`** (**required**) - One of the supported weather query types:  
-  - **`normal`** - General weather  
-  - **`aqi`** - Air quality  
-  - **`temp_hum`** - Temperature and humidity  
-  - **`sun`** - Sunrise and sunset  
+- **`weather_type`** (**required**) - One of the supported weather query types:
+  - **`normal`** - General weather
+  - **`aqi`** - Air quality
+  - **`temp_hum`** - Temperature and humidity
+  - **`sun`** - Sunrise and sunset
   - **`moon`** - Moonrise and moonset (if Open API docs list a second `sun` by mistake, use **`moon`** for this case.)
 
-- **`time_range`** (**required**) - Interval **`[start_time, end_time]`**; each element is a time string (e.g. **`YYYY-MM-DD HH:MM:SS`**).  
-  - Example: full day **2026-09-15**: `['2026-09-15 00:00:00', '2026-09-15 23:59:59']`  
-  - Example: **2026-09-15 14:00-18:00**: `['2026-09-15 14:00:00', '2026-09-15 18:00:00']`  
+- **`time_range`** (**required**) - Interval **`[start_time, end_time]`**; each element is a time string (e.g. **`YYYY-MM-DD HH:MM:SS`**).
+  - Example: full day **2026-09-15**: `['2026-09-15 00:00:00', '2026-09-15 23:59:59']`
+  - Example: **2026-09-15 14:00-18:00**: `['2026-09-15 14:00:00', '2026-09-15 18:00:00']`
   - For **current** weather, use **now** as start and **now + 5 minutes** as end (same string format).
 
-- **`location_en`** (**optional**) - Geographic place names in **English**, including administrative levels (Province / City / District as applicable).  
+- **`location_en`** (**optional**) - Geographic place names in **English**, including administrative levels (Province / City / District as applicable).
   - Example: Nanshan, Shenzhen -> `["Shenzhen City", "Nanshan District"]` (array shape per platform contract.)
 
 ## CLI
